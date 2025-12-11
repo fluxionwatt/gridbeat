@@ -1,0 +1,41 @@
+debug0: true
+log-path: ./log
+data-path: ./data
+extra-path: ./extra
+mqtt:
+    port: 1883
+    host: localhost
+http:
+    port: 8080
+    redirect_https: false
+https:
+    disable: false
+    port: 8443
+simulator:
+    max_slave_id: 1024
+    modbus-rtu:
+    -
+        name: /dev/ttys022
+        rate: 19200
+        datarate: 8
+        stopbits: 2
+        parity: 0
+    devices:
+        -
+            name: company1
+            sn: ss
+            device_type: ESS
+            device_plugin: Huawei_ESS2000
+            software_version: xxx
+            model: xxx
+            disable: false
+            url: tcp://127.0.0.1:5001
+        -
+            name: company2
+            sn: ss
+            device_type: ESS
+            device_plugin: Huawei_ESS2000
+            software_version: xxx
+            model: xxx
+            disable: false
+            url: tcp://127.0.0.1:5002

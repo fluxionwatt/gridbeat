@@ -1,0 +1,44 @@
+{
+  "name": "webui",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
+    "@fortawesome/fontawesome-svg-core": "^7.1.0",
+    "@fortawesome/free-brands-svg-icons": "^7.1.0",
+    "@fortawesome/free-regular-svg-icons": "^7.1.0",
+    "@fortawesome/free-solid-svg-icons": "^7.1.0",
+    "@fortawesome/vue-fontawesome": "^3.1.2",
+    "@xterm/addon-fit": "^0.10.0",
+    "axios": "^1.13.2",
+    "bootstrap": "^5.3.8",
+    "bootstrap-vue-next": "^0.40.8",
+    "echarts": "^6.0.0",
+    "element-plus": "^2.11.8",
+    "js-cookie": "^3.0.5",
+    "pinia": "^3.0.4",
+    "vue": "^3.5.24",
+    "vue-i18n": "^11.1.12",
+    "vue-router": "^4.6.3",
+    "xlsx": "^0.18.5",
+    "xterm": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "@vue/tsconfig": "^0.8.1",
+    "sass-embedded": "^1.93.3",
+    "typescript": "~5.9.3",
+    "vite": "npm:rolldown-vite@7.2.5",
+    "vue-tsc": "^3.1.4"
+  },
+  "overrides": {
+    "vite": "npm:rolldown-vite@7.2.5"
+  }
+}
