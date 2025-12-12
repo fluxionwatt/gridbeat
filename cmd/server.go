@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
@@ -57,6 +56,10 @@ func initLoggers() error {
 	}
 
 	var err error
+
+	if err = os.MkdirAll(core.Gconfig.LogPath, 0o755); err != nil {
+		return fmt.Errorf("failed to create dir %s: %w", core.Gconfig.LogPath, err)
+	}
 
 	if accesslogPathFile, err = os.OpenFile(core.Gconfig.LogPath+"/"+accesslogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644); err != nil {
 		return err
@@ -135,12 +138,8 @@ var serverStopCmd = &cobra.Command{
 	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		cwd, _ := os.Getwd()
-
-		pidFile := filepath.Join(cwd, "gridbeat.pid")
-
 		cntxt := &daemon.Context{
-			PidFileName: pidFile,
+			PidFileName: core.Gconfig.PID,
 			PidFilePerm: 0644,
 		}
 
@@ -167,7 +166,7 @@ var serverCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		cntxt := &daemon.Context{
-			PidFileName: "gridbeat.pid",
+			PidFileName: core.Gconfig.PID,
 			PidFilePerm: 0644,
 			LogFileName: "",
 			LogFilePerm: 0640,
@@ -191,10 +190,12 @@ var serverCmd = &cobra.Command{
 
 		var err error
 		if err = initLoggers(); err != nil {
-			panic(err)
+			cobra.CheckErr(err)
 		}
 
-		if err = model.InitDB(core.Gconfig.DataPath+"/app.db", sqlLogger); err != nil {
+		fmt.Printf("use log path: %s\n", core.Gconfig.LogPath)
+
+		if err = model.InitDB(core.Gconfig.DataPath, "app.db", sqlLogger); err != nil {
 			runLogger.Fatal(err)
 		}
 

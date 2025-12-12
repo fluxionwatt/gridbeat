@@ -17,8 +17,7 @@ import (
 
 var (
 	// Used for flags.
-	cfgFile       string
-	resetPassword string
+	cfgFile string
 
 	rootCmd = &cobra.Command{
 		Use:   version.ProgramName,
@@ -36,7 +35,7 @@ func Execute() error {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $PWD/"+version.ProgramName+".yaml)")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $PWD/"+version.ProgramName+".yaml)")
 	rootCmd.PersistentFlags().BoolVar(&core.Gconfig.Debug, "debug", false, "debug mode")
 	rootCmd.PersistentFlags().StringVarP(&core.Gconfig.Plugins, "plugins", "", "./plugins", "load specified plugins folder")
 
@@ -79,7 +78,24 @@ func initConfig() {
 
 	if err := viper.Unmarshal(&core.Gconfig); err != nil {
 		cobra.CheckErr(err)
-		//return fmt.Errorf("unable to decode into struct: %w", err)
+	}
+
+	if abs, err := filepath.Abs(core.Gconfig.LogPath); err != nil {
+		cobra.CheckErr(err)
+	} else {
+		core.Gconfig.LogPath = abs
+	}
+
+	if abs, err := filepath.Abs(core.Gconfig.DataPath); err != nil {
+		cobra.CheckErr(err)
+	} else {
+		core.Gconfig.DataPath = abs
+	}
+
+	if abs, err := filepath.Abs(core.Gconfig.ExtraPath); err != nil {
+		cobra.CheckErr(err)
+	} else {
+		core.Gconfig.ExtraPath = abs
 	}
 
 	/*

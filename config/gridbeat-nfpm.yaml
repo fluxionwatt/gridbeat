@@ -1,9 +1,8 @@
-debug: true
-log-path: ./workdir/log
-data-path: ./workdir/data
-extra-path: ./workdir/extra
+debug: false
+log-path: /var/log/gridbeat
+data-path: /var/lib/gridbeat/data
+extra-path: /var/lib/gridbeat/extra
 pid:        /run/gridbeat.pid
-pid:        gridbeat.pid
 
 mqtt:
     port: 1883
