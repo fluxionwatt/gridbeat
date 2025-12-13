@@ -3,14 +3,13 @@ Description=FluxionWatt data acquisition and monitoring Agent
 After=network.target
 
 [Service]
-Type=forking
+Type=simple
 User=root
 Group=root
 PIDFile=/run/gridbeat.pid
 Environment="conffile=/etc/gridbeat/gridbeat.yaml"
 EnvironmentFile=-/etc/sysconfig/gridbeat
-ExecStart=/usr/sbin/gridbeat server -c ${conffile} -d
-ExecReload=/bin/sh -c "/bin/kill -s HUP $(/bin/cat /run/gridbeat.pid)"
+ExecStart=/usr/sbin/gridbeat server -c ${conffile}
 ExecStop=/bin/sh -c "/bin/kill -s TERM $(/bin/cat /run/gridbeat.pid)"
 Restart=always
 RestartSec=30s

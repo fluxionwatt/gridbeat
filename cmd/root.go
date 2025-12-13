@@ -44,36 +44,52 @@ func init() {
 
 func initConfig() {
 
-	viper.SetConfigType("yaml")
-
-	if cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Search config in home directory with name ".cobra" (without extension).
-		viper.SetConfigName(version.ProgramName)
-		viper.AddConfigPath("./config")
-		viper.AddConfigPath("./")
-		viper.AddConfigPath("/etc/" + version.ProgramName + "/")
-	}
-
-	viper.BindPFlag("daemon", serverCmd.Flags().Lookup("daemon"))
 	viper.BindPFlag("debug", rootCmd.Flags().Lookup("debug"))
-
 	viper.SetEnvPrefix(version.ProgramName)
 
 	viper.AutomaticEnv()
 
-	viper.OnConfigChange(func(e fsnotify.Event) {
-		//errorLogger.Info("Config file changed:" + e.Name)
-	})
+	if cfgFile != "" {
+		viper.SetConfigType("yaml")
+		viper.SetConfigFile(cfgFile)
 
-	viper.WatchConfig()
+		viper.OnConfigChange(func(e fsnotify.Event) {
+			//errorLogger.Info("Config file changed:" + e.Name)
+		})
 
-	if err := viper.ReadInConfig(); err == nil {
-		//fmt.Println("Using config file:", viper.ConfigFileUsed())
+		viper.WatchConfig()
+
+		if err := viper.ReadInConfig(); err == nil {
+			//fmt.Println("Using config file:", viper.ConfigFileUsed())
+		} else {
+			// return fmt.Errorf("fatal error config file: %w", err)
+			cobra.CheckErr(fmt.Errorf("fatal error config file: %w", err))
+		}
 	} else {
-		// return fmt.Errorf("fatal error config file: %w", err)
-		cobra.CheckErr(err)
+		// Search config in home directory with name ".cobra" (without extension).
+		//viper.SetConfigName(version.ProgramName)
+		//viper.AddConfigPath("./config")
+		//viper.AddConfigPath("./")
+		//viper.AddConfigPath("/etc/" + version.ProgramName + "/")
+	}
+
+	// get wd
+	cdir := WorkDir()
+
+	if viper.GetString("log-path") == "" {
+		viper.Set("log-path", cdir)
+	}
+
+	if viper.GetString("data-path") == "" {
+		viper.Set("data-path", cdir)
+	}
+
+	if viper.GetString("extra-path") == "" {
+		viper.Set("extra-path", cdir)
+	}
+
+	if viper.GetString("pid") == "" {
+		viper.Set("pid", cdir+"/"+version.ProgramName+".pid")
 	}
 
 	if err := viper.Unmarshal(&core.Gconfig); err != nil {
@@ -98,6 +114,25 @@ func initConfig() {
 		core.Gconfig.ExtraPath = abs
 	}
 
+	if core.Gconfig.MQTT.Host == "" {
+		core.Gconfig.MQTT.Host = "localhost"
+		viper.Set("mqtt.host", "localhost")
+
+	}
+	if core.Gconfig.MQTT.Port == 0 {
+		core.Gconfig.MQTT.Port = 1883
+		viper.Set("mqtt.port", "1883")
+	}
+
+	if core.Gconfig.HTTP.Port == 0 {
+		core.Gconfig.HTTP.Port = 8080
+		viper.Set("http.port", "8080")
+	}
+	if core.Gconfig.HTTPS.Port == 0 {
+		core.Gconfig.HTTPS.Port = 8443
+		viper.Set("https.port", "8443")
+	}
+
 	/*
 		if loaded, err := loadAllPlugins(core.Gconfig.Plugins); err != nil {
 			log.Fatalf("load plugins error: %v", err)
@@ -108,6 +143,16 @@ func initConfig() {
 			}
 		}
 	*/
+}
+
+func WorkDir() string {
+	dir, _ := os.Getwd()
+	return dir
+}
+
+func ExeDir() string {
+	exe, _ := os.Executable()
+	return filepath.Dir(exe)
 }
 
 func loadAllPlugins(dir string) ([]pluginapi.Plugin, error) {

@@ -51,7 +51,7 @@ func ServerHTTP(server *mqtt.Server, errorLogger *logrus.Logger, accessLogger *l
 		errorLogger.Fatal("http listen failed: ", err)
 	}
 
-	fmt.Println("use http at %s", viper.GetString("http.port"))
+	fmt.Println("use http at", Gconfig.HTTP.Port)
 
 	if err := app.Listener(lnHTTP, fiber.ListenConfig{
 		DisableStartupMessage: true,

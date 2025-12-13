@@ -53,14 +53,20 @@ nfpms:
     formats:
       - rpm
       - deb
+    dependencies:
+      - logrotate
     bindir: /usr/sbin
     scripts:
       postinstall: packaging/postinstall.sh
       preremove: packaging/preremove.sh
     contents:
-      - src: "./packaging/gridbeat.service"
+      - src: "./packaging/cron.daily"
+        dst: "/etc/cron.daily/gridbeat"
+      - src: "./packaging/systemd"
         dst: "/usr/lib/systemd/system/gridbeat.service"
-      - src: "./packaging/gridbeat.default"
+      - src: "./packaging/logrotate"
+        dst: "/etc/logrotate.d/gridbeat"
+      - src: "./packaging/default"
         dst: "/etc/sysconfig/gridbeat"
       - src: "./config/gridbeat-nfpm.yaml"
         dst: "/etc/gridbeat/gridbeat.yaml"
