@@ -3,7 +3,7 @@ FROM --platform=$TARGETPLATFORM busybox:stable
 
 #HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD curl --fail http://localhost:8080/health || exit 1
 
-COPY $TARGETPLATFORM/gridbeat /gridbeat
+COPY linux/${TARGETARCH}/gridbeat /gridbeat
 COPY config/gridbeat-docker.yaml /config/gridbeat.yaml
 
 RUN mkdir -p /log /data /extra
