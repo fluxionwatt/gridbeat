@@ -1,20 +1,16 @@
-FROM alpine:3.22
-RUN apk --update upgrade && \
-    apk add sqlite && \
-    rm -rf /var/cache/apk/*
-# ENV GOPROXY https://goproxy.cn/
+ARG TARGETPLATFORM
+FROM --platform=$TARGETPLATFORM busybox:stable
 
-#RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
+#HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD curl --fail http://localhost:8080/health || exit 1
 
-ADD gridbeat /gridbeat
+COPY $TARGETPLATFORM/gridbeat /gridbeat
+COPY config/gridbeat-docker.yaml /config/gridbeat.yaml
 
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD curl --fail http://localhost:8080/health || exit 1
+RUN mkdir -p /log /data /extra
 
-RUN mkdir -p /config /log /data /extra
+VOLUME /log /data /extra
 
-VOLUME /config /log /data /extra
-
-EXPOSE 8080 8443
+EXPOSE 8080
 
 RUN  chmod +x /gridbeat
-CMD ["/gridbeat","server","--config", "/config/gridbeat.yaml"]
+CMD ["/gridbeat","server", "-c", "/config/gridbeat.yaml"]
