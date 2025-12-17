@@ -109,4 +109,3 @@ dockers_v2:
       - linux/amd64
       - linux/arm64
     extra_files:
-      - config/gridbeat-docker.yaml
