@@ -1,5 +1,7 @@
 package pluginapi
 
+import "context"
+
 // InstanceConfig 保存单个实例的配置（通用 KV）
 // InstanceConfig holds configuration for a single plugin instance (generic key-value).
 type InstanceConfig map[string]any
@@ -15,13 +17,21 @@ type Instance interface {
 	// Returns plugin type, e.g. "goose".
 	Type() string
 
-	// 创建后由宿主调用，负责初始化（起 goroutine / 建连接等）
-	// Called once after creation to initialize resources.
-	Init() error
+	// Init 使用给定的父 ctx 和 HostEnv 做初始化
+	// Init uses the given parent ctx and HostEnv for initialization.
+	// - parent: 实例级父 context，一般来自系统根 ctx 或更上层的租户 ctx
+	//           parent: per-instance parent context, usually derived from system root or tenant ctx.
+	// - env: 宿主传下来的全局环境（logger、metrics 等）
+	//        env: host environment (logger, metrics, etc.) passed from the host.
+	Init(parent context.Context, env *HostEnv) error
 
 	// 销毁前由宿主调用，负责释放资源（停 goroutine / 关连接等）
 	// Called before destruction to free all resources.
 	Close() error
+
+	// UpdateConfig 用于应用新的配置，实现热更新
+	// UpdateConfig applies a new configuration (for hot-reload).
+	UpdateConfig(cfg InstanceConfig) error
 }
 
 // Factory 表示某个插件类型（驱动），负责创建多个实例
@@ -31,7 +41,7 @@ type Factory interface {
 	// Returns plugin type name (globally unique), e.g. "goose".
 	Type() string
 
-	// 根据实例 ID + 配置创建实例
-	// Creates a new instance with given ID and config.
+	// 根据实例 ID + 配置创建实例（不带 ctx/env，纯构造）
+	// Creates a new instance with given ID and config (pure construction, no ctx/env yet).
 	New(id string, cfg InstanceConfig) (Instance, error)
 }

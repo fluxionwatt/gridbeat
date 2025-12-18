@@ -42,6 +42,8 @@ func init() {
 func initConfig() {
 
 	viper.BindPFlag("debug", rootCmd.Flags().Lookup("debug"))
+	viper.BindPFlag("plugins", rootCmd.Flags().Lookup("plugins"))
+
 	viper.SetEnvPrefix(version.ProgramName)
 
 	viper.AutomaticEnv()

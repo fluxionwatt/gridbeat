@@ -22,7 +22,7 @@ var initDataCmd = &cobra.Command{
 		errorLogger.SetFormatter(&logrus.JSONFormatter{})
 		errorLogger.SetOutput(os.Stdout)
 
-		if err := model.InitDB(core.Gconfig.DataPath, "app.db", errorLogger); err != nil {
+		if err, _ := model.InitDB(core.Gconfig.DataPath, "app.db", errorLogger); err != nil {
 			errorLogger.Fatal(err)
 		}
 

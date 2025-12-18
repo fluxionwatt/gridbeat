@@ -5,9 +5,9 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD curl --fail http://loca
 
 COPY linux/${TARGETARCH}/gridbeat /gridbeat
 
-RUN mkdir -p /log /data /extra
+RUN mkdir -p /var/log/gridbeat /var/lib/gridbeat/data /var/lib/gridbeat/extra /var/lib/gridbeat/plugins
 
-VOLUME /log /data /extra
+VOLUME /var/log/gridbeat /var/lib/gridbeat/data /var/lib/gridbeat/extra
 
 EXPOSE 8080
 

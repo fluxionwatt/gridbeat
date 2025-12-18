@@ -12,13 +12,10 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/requestid"
 	"github.com/gofiber/fiber/v3/middleware/static"
-	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/sirupsen/logrus"
 )
 
-func NewHandler(
-	server *mqtt.Server, extra string, errorLogger *logrus.Logger, accessLogger *logrus.Logger,
-) (*fiber.App, error) {
+func NewHandler(extra string, errorLogger *logrus.Logger, accessLogger *logrus.Logger) *fiber.App {
 
 	app := fiber.New(fiber.Config{
 		// 统一错误处理 + logrus
@@ -55,17 +52,6 @@ func NewHandler(
 		Compress:  true,
 	}))
 
-	//app.Get("/healthz", healthcheck.New())
-
-	//cfg := swaggerui.Config{
-	//	BasePath: "/",
-	//		FilePath: "./docs/swagger.json",
-	//		Path:     "swagger",
-	//		Title:    "Swagger API Docs",
-	//	}
-
-	//app.Use(swaggerui.New(cfg))
-
 	// JWT Middleware
 	//app.Use(jwtware.New(jwtware.Config{
 	//	SigningKey: jwtware.SigningKey{Key: []byte("secret")},
@@ -84,10 +70,6 @@ func NewHandler(
 	}))
 
 	app.Get("/metrics", monitor.New(monitor.Config{Title: "MyService Metrics Page"}))
-
-	app.Get("/v1/api/test", func(c fiber.Ctx) error {
-		return c.SendString("I'm a GET request!")
-	})
 
 	// WebSocket 握手预处理中间件
 	// 只允许 WebSocket 升级的请求进入后面的路由
@@ -121,7 +103,7 @@ func NewHandler(
 		},
 	}))
 
-	return app, nil
+	return app
 }
 
 func ForceHTTPS(httpsPort string) fiber.Handler {

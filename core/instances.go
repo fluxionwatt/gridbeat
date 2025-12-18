@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -12,19 +13,27 @@ import (
 type InstanceManager struct {
 	mu        sync.RWMutex
 	instances map[string]map[string]pluginapi.Instance // type -> id -> instance
+	rootCtx   context.Context                          // 系统根 ctx / system root context
+	env       *pluginapi.HostEnv                       // 宿主环境（logger 等）/ host environment (logger, etc.)
 }
 
-// NewInstanceManager 创建新的实例管理器
-// NewInstanceManager creates a new instance manager.
-func NewInstanceManager() *InstanceManager {
+// NewInstanceManager 创建新的实例管理器，如果 rootCtx 为 nil 则使用 context.Background()
+// NewInstanceManager creates a new instance manager; if rootCtx is nil, uses context.Background().
+func NewInstanceManager(rootCtx context.Context, env *pluginapi.HostEnv) *InstanceManager {
+	if rootCtx == nil {
+		rootCtx = context.Background()
+	}
 	return &InstanceManager{
 		instances: make(map[string]map[string]pluginapi.Instance),
+		rootCtx:   rootCtx,
+		env:       env,
 	}
 }
 
-// Create 创建并初始化一个实例（按类型 + ID + 配置）
-// Create creates and initializes an instance for given type + ID + config.
-func (m *InstanceManager) Create(
+// CreateWithContext 使用指定 parentCtx 创建实例；parentCtx 为 nil 则使用 rootCtx
+// CreateWithContext uses parentCtx; if parentCtx is nil, uses rootCtx.
+func (m *InstanceManager) CreateWithContext(
+	parentCtx context.Context,
 	typ, id string,
 	cfg pluginapi.InstanceConfig,
 ) (pluginapi.Instance, error) {
@@ -41,7 +50,15 @@ func (m *InstanceManager) Create(
 	if err != nil {
 		return nil, fmt.Errorf("create instance type=%s id=%s: %w", typ, id, err)
 	}
-	if err := inst.Init(); err != nil {
+
+	ctx := parentCtx
+	if ctx == nil {
+		ctx = m.rootCtx
+	}
+
+	// 关键：这里把 ctx + HostEnv 一起传给实例 Init
+	// Key: inject ctx + HostEnv into instance.Init.
+	if err := inst.Init(ctx, m.env); err != nil {
 		return nil, fmt.Errorf("init instance type=%s id=%s: %w", typ, id, err)
 	}
 
@@ -55,31 +72,34 @@ func (m *InstanceManager) Create(
 	return inst, nil
 }
 
-// Destroy 销毁单个实例（调用 Close 并从管理器中删除）
-// Destroy destroys a single instance (calls Close and removes it).
-func (m *InstanceManager) Destroy(typ, id string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+// Create 兼容简化接口：默认使用 rootCtx
+// Create is a convenience wrapper using rootCtx.
+func (m *InstanceManager) Create(
+	typ, id string,
+	cfg pluginapi.InstanceConfig,
+) (pluginapi.Instance, error) {
+	return m.CreateWithContext(nil, typ, id, cfg)
+}
 
+// Update / Destroy / DestroyAll / Get 保持和之前一样（只贴 Update 示例）
+// The rest (Update / Destroy / DestroyAll / Get) remain unchanged.
+
+func (m *InstanceManager) Update(
+	typ, id string,
+	cfg pluginapi.InstanceConfig,
+) error {
+	m.mu.RLock()
 	byType, ok := m.instances[typ]
 	if !ok {
+		m.mu.RUnlock()
 		return fmt.Errorf("no instances for type %q", typ)
 	}
 	inst, ok := byType[id]
+	m.mu.RUnlock()
 	if !ok {
 		return fmt.Errorf("no instance type=%s id=%s", typ, id)
 	}
-
-	if err := inst.Close(); err != nil {
-		return fmt.Errorf("close instance type=%s id=%s: %w", typ, id, err)
-	}
-
-	delete(byType, id)
-	if len(byType) == 0 {
-		delete(m.instances, typ)
-	}
-
-	return nil
+	return inst.UpdateConfig(cfg)
 }
 
 // DestroyAll 销毁所有实例，适合在进程退出时调用
@@ -108,4 +128,31 @@ func (m *InstanceManager) Get(typ, id string) (pluginapi.Instance, bool) {
 	}
 	inst, ok := byType[id]
 	return inst, ok
+}
+
+// Destroy 销毁单个实例（调用 Close 并从管理器中删除）
+// Destroy destroys a single instance (calls Close and removes it).
+func (m *InstanceManager) Destroy(typ, id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	byType, ok := m.instances[typ]
+	if !ok {
+		return fmt.Errorf("no instances for type %q", typ)
+	}
+	inst, ok := byType[id]
+	if !ok {
+		return fmt.Errorf("no instance type=%s id=%s", typ, id)
+	}
+
+	if err := inst.Close(); err != nil {
+		return fmt.Errorf("close instance type=%s id=%s: %w", typ, id, err)
+	}
+
+	delete(byType, id)
+	if len(byType) == 0 {
+		delete(m.instances, typ)
+	}
+
+	return nil
 }

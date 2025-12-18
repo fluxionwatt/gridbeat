@@ -82,26 +82,26 @@ func (l *LogrusLogger) Trace(
 	}
 }
 
-func InitDB(path string, filename string, errorLogger *logrus.Logger) error {
+func InitDB(path string, filename string, errorLogger *logrus.Logger) (*gorm.DB, error) {
 	gormLogger := NewLogrusLogger(errorLogger)
 	gormLogger.LogLevel = logger.LogLevel(logrus.DebugLevel)
 	gormLogger.SlowThreshold = 500 * time.Millisecond
 
 	if err := os.MkdirAll(path, 0o755); err != nil {
-		return fmt.Errorf("failed to create dir %s: %w", path, err)
+		return nil, fmt.Errorf("failed to create dir %s: %w", path, err)
 	}
 
 	db, err := gorm.Open(sqlite.Open(path+"/"+filename), &gorm.Config{
 		Logger: gormLogger,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to connect database: %v", err)
+		return nil, fmt.Errorf("failed to connect database: %v", err)
 	}
 
 	// 获取通用数据库对象 sql.DB ，然后使用其提供的功能
 	sqlDB, err := db.DB()
 	if err != nil {
-		return fmt.Errorf("failed to connect database: %v", err)
+		return nil, fmt.Errorf("failed to connect database: %v", err)
 	}
 
 	// SetMaxIdleConns 用于设置连接池中空闲连接的最大数量。
@@ -126,5 +126,5 @@ func InitDB(path string, filename string, errorLogger *logrus.Logger) error {
 
 	Gdb = db
 
-	return nil
+	return db, nil
 }
