@@ -13,6 +13,7 @@ import (
 
 	"github.com/fluxionwatt/gridbeat/core"
 	"github.com/fluxionwatt/gridbeat/model"
+	"github.com/fluxionwatt/gridbeat/pluginapi"
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -231,6 +232,44 @@ var serverCmd = &cobra.Command{
 		defer logger.Close()
 
 		fmt.Printf("use log path: %s\n", core.Gconfig.LogPath)
+
+		// 1. 加载配置 / Load configuration.
+		cfg, err := loadConfig("config.yaml")
+		if err != nil {
+			log.Fatalf("load config: %v", err)
+		}
+
+		// 2. 内置插件已经通过 init() 完成工厂注册
+		//    Built-in factories are already registered via init() above.
+
+		// 3. 可选：从目录加载 .so 插件工厂
+		//    Optional: load .so plugin factories from a directory.
+		loadSoFactories("./so-plugins")
+
+		log.Printf("factories registered:")
+		for _, f := range pluginapi.AllFactories() {
+			log.Printf("  - %s", f.Type())
+		}
+
+		// 4. 根据配置创建所有实例
+		//    Create all instances according to config.
+		mgr := core.NewInstanceManager()
+		defer mgr.DestroyAll() // 进程退出时清理所有实例 / cleanup on shutdown
+
+		for typ, instCfgs := range cfg.Plugins {
+			for _, ic := range instCfgs {
+				if ic.ID == "" {
+					log.Printf("skip %s instance with empty id", typ)
+					continue
+				}
+				log.Printf("create instance type=%s id=%s", typ, ic.ID)
+				_, err := mgr.Create(typ, ic.ID, ic.Config)
+				if err != nil {
+					log.Printf("  create failed: %v", err)
+					continue
+				}
+			}
+		}
 
 		if err = model.InitDB(core.Gconfig.DataPath, "app.db", logger.sqlLogger); err != nil {
 			logger.runLogger.Fatal(err)

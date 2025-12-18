@@ -2,13 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
-	"plugin"
 
 	"github.com/fluxionwatt/gridbeat/core"
-	"github.com/fluxionwatt/gridbeat/pluginapi"
 	"github.com/fluxionwatt/gridbeat/version"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
@@ -132,17 +129,6 @@ func initConfig() {
 		core.Gconfig.HTTPS.Port = 8443
 		viper.Set("https.port", "8443")
 	}
-
-	/*
-		if loaded, err := loadAllPlugins(core.Gconfig.Plugins); err != nil {
-			log.Fatalf("load plugins error: %v", err)
-		} else {
-			fmt.Printf("loaded %d plugins:\n", len(loaded))
-			for _, p := range loaded {
-				fmt.Println(" -", p.Name())
-			}
-		}
-	*/
 }
 
 func WorkDir() string {
@@ -153,54 +139,4 @@ func WorkDir() string {
 func ExeDir() string {
 	exe, _ := os.Executable()
 	return filepath.Dir(exe)
-}
-
-func loadAllPlugins(dir string) ([]pluginapi.Plugin, error) {
-	var result []pluginapi.Plugin
-
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, fmt.Errorf("read dir %s: %w", dir, err)
-	}
-
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		if filepath.Ext(e.Name()) != ".so" {
-			continue
-		}
-
-		path := filepath.Join(dir, e.Name())
-		log.Printf("loading plugin: %s", path)
-
-		p, err := plugin.Open(path)
-		if err != nil {
-			log.Printf("  open failed: %v", err)
-			continue
-		}
-
-		// 约定每个插件都导出名为 "Plugin" 的符号
-		sym, err := p.Lookup("Plugin")
-		if err != nil {
-			log.Printf("  lookup Plugin failed: %v", err)
-			continue
-		}
-
-		pl, ok := sym.(pluginapi.Plugin)
-		if !ok {
-			log.Printf("  symbol Plugin type mismatch (not pluginapi.Plugin)")
-			continue
-		}
-
-		// 调用插件初始化
-		if err := pl.Init(); err != nil {
-			log.Printf("  init failed: %v", err)
-			continue
-		}
-
-		result = append(result, pl)
-	}
-
-	return result, nil
 }
