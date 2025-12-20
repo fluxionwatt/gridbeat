@@ -10,13 +10,14 @@ import (
 	"syscall"
 
 	"github.com/fluxionwatt/gridbeat/core"
-	"github.com/fluxionwatt/gridbeat/model"
+	"github.com/fluxionwatt/gridbeat/internal/auth"
+	"github.com/fluxionwatt/gridbeat/internal/db"
+	"github.com/fluxionwatt/gridbeat/internal/models"
 	"github.com/fluxionwatt/gridbeat/pluginapi"
 	"github.com/google/uuid"
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"gorm.io/gorm"
 
 	_ "github.com/fluxionwatt/gridbeat/core/plugin/http"
 	_ "github.com/fluxionwatt/gridbeat/core/plugin/modbusrtu"
@@ -69,7 +70,13 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "run server",
 	Long:  ``,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
+
+		cfg := &core.Gconfig
+
+		// Enable/disable auth globally.
+		// 全局启用/禁用鉴权。
+		auth.NoAuth = core.Gconfig.DisableAuth
 
 		var err error
 		var logger *pluginapi.ReopenLogger
@@ -98,16 +105,26 @@ var serverCmd = &cobra.Command{
 			logger.RunLogger.Info(fmt.Sprintf("factories registered %s", f.Type()))
 		}
 
-		var db *gorm.DB
-		if db, err = model.InitDB(core.Gconfig.DataPath, "app.db", logger.SqlLogger); err != nil {
-			logger.RunLogger.Fatal(err)
+		gdb, err := db.Open(cfg, logger.SqlLogger)
+		if err != nil {
+			return err
+		}
+
+		if err := models.Migrate(gdb); err != nil {
+			return err
+		}
+
+		// Ensure root exists ("admin" password by default if created).
+		// 确保 root 存在（首次创建默认密码 admin）。
+		if err := models.EnsureRootUser(gdb); err != nil {
+			return err
 		}
 
 		// mqtt
 		var server *mqtt.Server
 		if server, err = core.ServerMQTT(logger.MqttLogger); err != nil {
 			logger.MqttLogger.Fatal(err)
-			return
+			return err
 		}
 
 		rootCtx, rootCancel := context.WithCancel(context.Background())
@@ -125,8 +142,9 @@ var serverCmd = &cobra.Command{
 		// 宿主环境 / host environment
 		env := &pluginapi.HostEnv{
 			Logger: logger,
-			DB:     db,
+			DB:     gdb,
 			MQTT:   server,
+			Conf:   &core.Gconfig,
 		}
 
 		// 带 rootCtx + env 的 InstanceManager
@@ -159,7 +177,7 @@ var serverCmd = &cobra.Command{
 
 		if err := server.Serve(); err != nil {
 			logger.MqttLogger.Fatal(err)
-			return
+			return err
 		}
 
 		confHTTP := make(pluginapi.InstanceConfig)

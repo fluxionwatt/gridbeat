@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/fluxionwatt/gridbeat/core"
 	"github.com/fluxionwatt/gridbeat/version"
@@ -46,7 +47,19 @@ func initConfig() {
 
 	viper.SetEnvPrefix(version.ProgramName)
 
+	// Environment variables: GRIDBEAT_APP_DB_DIR, GRIDBEAT_AUTH_JWT_SECRET ...
+	// 环境变量：GRIDBEAT_APP_DB_DIR, GRIDBEAT_AUTH_JWT_SECRET ...
+	viper.SetEnvPrefix(version.ProgramName)
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
+
+	// Defaults / 默认值
+	viper.SetDefault("data-path", "./")
+	viper.SetDefault("auth.jwt.secret", "change-me")
+	viper.SetDefault("auth.jwt.issuer", "gridbeat")
+	viper.SetDefault("auth.web.idle_minutes", 30)
+	viper.SetDefault("audit.retention_days", 120)
+	viper.SetDefault("server.listen", ":8080")
 
 	if cfgFile != "" {
 		viper.SetConfigType("yaml")
@@ -93,6 +106,23 @@ func initConfig() {
 
 	if err := viper.Unmarshal(&core.Gconfig); err != nil {
 		cobra.CheckErr(err)
+	}
+
+	cfg := &core.Gconfig
+
+	// Normalize / 规范化
+	cfg.LogPath = filepath.Clean(cfg.LogPath)
+	if cfg.Auth.Web.IdleMinutes <= 0 {
+		cfg.Auth.Web.IdleMinutes = 30
+	}
+	if cfg.Audit.RetentionDays <= 0 {
+		cfg.Audit.RetentionDays = 120
+	}
+	if strings.TrimSpace(cfg.Auth.JWT.Issuer) == "" {
+		cfg.Auth.JWT.Issuer = "gridbeat"
+	}
+	if strings.TrimSpace(cfg.Server.Listen) == "" {
+		cfg.Server.Listen = ":8080"
 	}
 
 	if abs, err := filepath.Abs(core.Gconfig.LogPath); err != nil {

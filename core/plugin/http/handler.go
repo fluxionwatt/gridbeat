@@ -3,6 +3,7 @@ package http
 import (
 	"io/fs"
 	"strings"
+	"time"
 
 	"github.com/fluxionwatt/gridbeat/frontend"
 	"github.com/gofiber/contrib/v3/monitor"
@@ -10,7 +11,6 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/pprof"
 	"github.com/gofiber/fiber/v3/middleware/recover"
-	"github.com/gofiber/fiber/v3/middleware/requestid"
 	"github.com/gofiber/fiber/v3/middleware/static"
 	"github.com/sirupsen/logrus"
 )
@@ -37,13 +37,19 @@ func NewHandler(extra string, errorLogger *logrus.Logger, accessLogger *logrus.L
 			})
 		},
 	})
+
+	// Start audit retention job.
+	// 启动审计保留周期清理任务。
+	//stop := make(chan struct{})
+	//s.StartAuditRetentionJob(stop)
+
 	app.Use(func(c fiber.Ctx) error {
 		c.Locals("logger", errorLogger)
 		return c.Next()
 	})
 
 	app.Use(pprof.New(pprof.Config{Prefix: "/endpoint-prefix"}))
-	app.Use(requestid.New())
+	//app.Use(requestid.New())
 
 	app.Use("/public/extra", static.New(extra, static.Config{
 		Browse:    true,
@@ -135,5 +141,26 @@ func ForceHTTPS(httpsPort string) fiber.Handler {
 		// v3 正确写法：先取 Redirect()，再 To()
 		c.Redirect().To(target)
 		return nil
+	}
+}
+
+func AccessLogMiddleware(log *logrus.Logger) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		start := time.Now()
+
+		err := c.Next()
+
+		latency := time.Since(start)
+
+		log.WithFields(logrus.Fields{
+			"ip":      c.IP(),
+			"method":  c.Method(),
+			"path":    c.Path(),
+			"status":  c.Response().StatusCode(),
+			"latency": latency.String(),
+			"ua":      string(c.Request().Header.UserAgent()),
+		}).Info("access")
+
+		return err
 	}
 }

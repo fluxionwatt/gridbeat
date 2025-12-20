@@ -77,7 +77,7 @@ func NewReopenLogger(path string, debug bool) (*ReopenLogger, error) {
 	}
 
 	l.SqlLogger.SetOutput(l.SqllogPathFile)
-	l.SqlLogger.SetFormatter(&logrus.JSONFormatter{})
+	l.SqlLogger.SetFormatter(&logrus.TextFormatter{})
 	if debug {
 		l.SqlLogger.SetLevel(logrus.DebugLevel)
 		l.SqlLogger.ReportCaller = true

@@ -1,4 +1,4 @@
-package internal
+package core
 
 import (
 	"time"
@@ -8,7 +8,7 @@ import (
 
 var c gocron.Scheduler
 
-func init() {
+func initA() {
 	// create a scheduler
 	var err error
 	c, err = gocron.NewScheduler()

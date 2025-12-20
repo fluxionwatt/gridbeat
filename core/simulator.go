@@ -1,17 +1,13 @@
 package core
 
 import (
-	"context"
 	"fmt"
 	"math"
 	"sync"
 	"time"
 
-	"github.com/fluxionwatt/gridbeat/model"
 	"github.com/fluxionwatt/gridbeat/utils/modbus"
-	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 const (
@@ -21,26 +17,26 @@ const (
 // New creates a new storage
 func ServerSimulator(errorLogger *logrus.Logger) {
 
-	ctx := context.Background()
+	//ctx := context.Background()
 
 	for _, db := range Gconfig.Simulator.Devices {
 
 		// insert device
-		data := &model.Device{
-			UUID:            uuid.New().String(),
-			Name:            db.Name,
-			SN:              db.SN,
-			DeviceType:      db.DeviceType,
-			DevicePlugin:    db.DevicePlugin,
-			SoftwareVersion: db.SoftwareVersion,
-			Model:           db.Model,
-			Disable:         db.Disable,
-			//URL:             db.URL,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		}
-
-		gorm.G[model.Device](model.Gdb).Create(ctx, data)
+		/*
+			data := &models.Device{
+				UUID:            uuid.New().String(),
+				Name:            db.Name,
+				SN:              db.SN,
+				DeviceType:      db.DeviceType,
+				DevicePlugin:    db.DevicePlugin,
+				SoftwareVersion: db.SoftwareVersion,
+				Model:           db.Model,
+				Disable:         db.Disable,
+				//URL:             db.URL,
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			}
+		*/
 
 		var eh *exampleHandler
 		var ticker *time.Ticker

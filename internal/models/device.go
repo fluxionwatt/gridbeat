@@ -1,4 +1,4 @@
-package model
+package models
 
 import (
 	"time"
@@ -131,28 +131,4 @@ type RegisterDef struct {
 	Unit     string  // 单位（V, A, kWh, %...）
 	RW       string  // RO / RW / WO
 	Desc     string
-}
-
-func GetDevice() []Device {
-	var ds []Device
-
-	result := Gdb.Preload("Channel").Preload("DevicePoint").Find(&ds)
-	if result.Error != nil {
-		// Handle error
-		return ds
-	}
-
-	return ds
-}
-
-func GetChannel() []Channel {
-	var ds []Channel
-
-	result := Gdb.Find(&ds)
-	if result.Error != nil {
-		// Handle error
-		return ds
-	}
-
-	return ds
 }

@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gofiber/fiber/v3" // ⚠️ 注意是 v3 / note: fiber v3
+	"github.com/fluxionwatt/gridbeat/core"
+	"github.com/fluxionwatt/gridbeat/internal/api"
+	"github.com/fluxionwatt/gridbeat/pluginapi"
+	"github.com/gofiber/fiber/v3"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-
-	"github.com/fluxionwatt/gridbeat/core"
-	"github.com/fluxionwatt/gridbeat/pluginapi" // 按你项目实际 module 改掉 / change to your module path
 )
 
 // HTTPServerConfig：单个 httpserver 实例的配置
@@ -32,6 +32,8 @@ type HTTPServerConfig struct {
 // HTTPServerInstance：具体实例，实现 pluginapi.Instance
 // HTTPServerInstance: concrete instance implementing pluginapi.Instance.
 type HTTPServerInstance struct {
+	api.Server
+
 	id  string
 	typ string
 	cfg HTTPServerConfig
@@ -93,14 +95,15 @@ func (s *HTTPServerInstance) Init(parent context.Context, env *pluginapi.HostEnv
 
 	s.app = NewHandler(core.Gconfig.ExtraPath, env.Logger.RunLogger, env.Logger.AccessLogger)
 
+	s.Server.Cfg = env.Conf
+	s.Server.DB = env.DB
+	s.Server.App(s.app)
+
 	// 注册路由 / Register routes.
 	base := s.cfg.BasePath
 	if base == "" {
 		base = "/"
 	}
-
-	RouterGroupApp.Auth.InitRouter(s.app)
-	RouterGroupApp.System.InitRouter(s.app)
 
 	// 协程 1：启动 Fiber HTTP 服务器（阻塞 Listen）
 	// Goroutine 1: start Fiber HTTP server (blocking Listen).

@@ -1,6 +1,7 @@
 package pluginapi
 
 import (
+	"github.com/fluxionwatt/gridbeat/internal/config"
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"gorm.io/gorm"
 )
@@ -13,6 +14,7 @@ type HostEnv struct {
 	// Values: extension map for arbitrary global objects (DB, metrics, cache clients, etc).
 	//Values map[string]any
 
+	Conf   *config.Config
 	DB     *gorm.DB
 	Logger *ReopenLogger
 
