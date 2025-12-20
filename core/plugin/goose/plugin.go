@@ -153,15 +153,9 @@ func (g *GooseInstance) UpdateConfig(raw pluginapi.InstanceConfig) error {
 
 	var newCfg GooseConfig
 	if raw != nil {
-		if v, ok := raw["dsn"].(string); ok {
-			newCfg.DSN = v
-		}
-		if v, ok := raw["flush_interval"].(string); ok && v != "" {
-			dur, err := time.ParseDuration(v)
-			if err != nil {
-				return fmt.Errorf("goose: invalid flush_interval=%q: %w", v, err)
-			}
-			newCfg.FlushInterval = dur
+		if v, ok := raw.(GooseConfig); ok {
+			newCfg.DSN = v.DSN
+			newCfg.FlushInterval = v.FlushInterval
 		}
 	}
 	if newCfg.FlushInterval == 0 {
@@ -187,15 +181,9 @@ func (f *GooseFactory) New(id string, raw pluginapi.InstanceConfig) (pluginapi.I
 	}
 	var cfg GooseConfig
 	if raw != nil {
-		if v, ok := raw["dsn"].(string); ok {
-			cfg.DSN = v
-		}
-		if v, ok := raw["flush_interval"].(string); ok && v != "" {
-			dur, err := time.ParseDuration(v)
-			if err != nil {
-				return nil, fmt.Errorf("goose: invalid flush_interval=%q: %w", v, err)
-			}
-			cfg.FlushInterval = dur
+		if v, ok := raw.(GooseConfig); ok {
+			cfg.DSN = v.DSN
+			cfg.FlushInterval = v.FlushInterval
 		}
 	}
 	return &GooseInstance{

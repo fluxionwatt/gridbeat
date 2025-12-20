@@ -55,7 +55,7 @@ $ cd gridbeat && task build
 $ docker run -d --name gridbeat -p 8080:8080 fluxionwatt/gridbeat:1.0.0
 ```
 
-### [Modbus TCP Data Collection and MQTT Transmission](https://www.fluxionwatt.com/gridbeat/en_US/quick-start/quick-start.html)
+### [Modbus TCP Data Collection and MQTT Transmission](./docs/quick_start/quick_start.md)
 
 ## Get Involved
 

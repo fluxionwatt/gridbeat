@@ -134,7 +134,7 @@ func (h *Server) CreateSetting(c fiber.Ctx) error {
 	item := models.Setting{
 		Name:      req.Name,
 		ValueType: strings.ToLower(req.ValueType),
-		ValueJSON: datatypes.JSON(req.Value),
+		ValueJSON: models.ScalarJSON(datatypes.JSON(req.Value)),
 	}
 	if err := h.DB.Create(&item).Error; err != nil {
 		return c.Status(500).JSON(APIError{Message: err.Error()})
@@ -184,7 +184,7 @@ func (h *Server) UpdateSettingByID(c fiber.Ctx) error {
 			return c.Status(400).JSON(APIError{Message: err.Error()})
 		}
 		item.ValueType = valueType
-		item.ValueJSON = datatypes.JSON(req.Value)
+		item.ValueJSON = models.ScalarJSON(datatypes.JSON(req.Value))
 	} else if req.ValueType != nil {
 		// 只更新类型不更新值通常没意义，这里直接报错更安全
 		// Updating type without value is usually unsafe -> reject
@@ -302,7 +302,7 @@ func (h *Server) UpsertSettingValueByName(c fiber.Ctx) error {
 			item = models.Setting{
 				Name:      name,
 				ValueType: vt,
-				ValueJSON: datatypes.JSON(req.Value),
+				ValueJSON: models.ScalarJSON(datatypes.JSON(req.Value)),
 			}
 
 			// 这里可能因并发导致 unique 冲突；冲突则再查一次并走更新
@@ -322,7 +322,7 @@ func (h *Server) UpsertSettingValueByName(c fiber.Ctx) error {
 					return err
 				}
 				again.ValueType = vt2
-				again.ValueJSON = datatypes.JSON(req.Value)
+				again.ValueJSON = models.ScalarJSON(datatypes.JSON(req.Value))
 				if err := tx.Save(&again).Error; err != nil {
 					return err
 				}
@@ -344,7 +344,7 @@ func (h *Server) UpsertSettingValueByName(c fiber.Ctx) error {
 		}
 
 		item.ValueType = vt
-		item.ValueJSON = datatypes.JSON(req.Value)
+		item.ValueJSON = models.ScalarJSON(datatypes.JSON(req.Value))
 
 		if err := tx.Save(&item).Error; err != nil {
 			return err

@@ -18,7 +18,6 @@ import (
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	_ "github.com/fluxionwatt/gridbeat/core/plugin/goose"
 	_ "github.com/fluxionwatt/gridbeat/core/plugin/http"
@@ -72,7 +71,7 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "run server",
 	Long:  ``,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
 
 		cfg := &core.Gconfig
 
@@ -109,39 +108,39 @@ var serverCmd = &cobra.Command{
 
 		gdb, err := db.Open(cfg, logger.SqlLogger)
 		if err != nil {
-			return err
+			cobra.CheckErr(fmt.Errorf("db open error %w", err))
 		}
 
 		if err := models.Migrate(gdb); err != nil {
-			return err
+			cobra.CheckErr(fmt.Errorf("db migrate %w", err))
+			return
 		}
 
 		// Ensure root exists ("admin" password by default if created).
 		// 确保 root 存在（首次创建默认密码 admin）。
 		if err := models.EnsureRootUser(gdb); err != nil {
-			return err
+			cobra.CheckErr(fmt.Errorf("ensure root user %w", err))
+			return
 		}
 
-		cfg.Serial = append(cfg.Serial, "fasfdsf")
-		cfg.Serial = append(cfg.Serial, "yyyy")
-		cfg.Serial = append(cfg.Serial, "xxx")
-
 		if err := db.SyncSerials(gdb, cfg.Serial); err != nil {
-			return err
+			cobra.CheckErr(fmt.Errorf("sync serials failed %w", err))
+			return
 		}
 
 		// 初始化默认 setting 数据（只补缺，不覆盖）
 		// Seed default settings (insert missing only, do NOT overwrite)
 		if err := db.SeedDefaultSettings(gdb); err != nil {
-			//return fmt.Sprintf("seed default settings failed: %v", err)
-			return err
+			cobra.CheckErr(fmt.Errorf("seed default settings failed %w", err))
+			return
 		}
 
 		// mqtt
 		var server *mqtt.Server
 		if server, err = core.ServerMQTT(logger.MqttLogger); err != nil {
-			logger.MqttLogger.Fatal(err)
-			return err
+			logger.MqttLogger.Error(err)
+			cobra.CheckErr(fmt.Errorf("server mqtt %w", err))
+			return
 		}
 
 		rootCtx, rootCancel := context.WithCancel(context.Background())
@@ -194,22 +193,24 @@ var serverCmd = &cobra.Command{
 		go handleSignals(logger)
 
 		if err := server.Serve(); err != nil {
-			logger.MqttLogger.Fatal(err)
-			return err
+			logger.MqttLogger.Error(err)
+			cobra.CheckErr(fmt.Errorf("server mqtt start %w", err))
+			return
 		}
 
-		confHTTP := make(pluginapi.InstanceConfig)
-		confHTTP["address"] = ":" + viper.GetString("http.port")
-
-		mgr.Create("http", uuid.New().String(), confHTTP)
-
+		mgr.Create("http", uuid.New().String(), nil)
 		if !core.Gconfig.HTTPS.Disable {
-			confHTTPS := make(pluginapi.InstanceConfig)
-			confHTTPS["address"] = ":" + viper.GetString("https.port")
-			confHTTPS["https"] = "true"
-
-			mgr.Create("http", uuid.New().String(), confHTTPS)
+			mgr.Create("http", uuid.New().String(), nil)
 		}
+
+		var items []models.Serial
+		if err := gdb.Order("name asc").Find(&items).Error; err != nil {
+			cobra.CheckErr(fmt.Errorf("server mqtt start %w", err))
+			return
+		}
+		//for _, serial := range items {
+		//	mgr.Create("modbusrtu", uuid.New().String(), nil)
+		//}
 
 		select {}
 	},

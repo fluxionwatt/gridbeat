@@ -12,6 +12,12 @@ http:
 https:
     disable: false
     port: 8443
+serial:
+    - /dev/ttys001
+    - /dev/ttys002
+    - /dev/ttys003
+    - /dev/ttys004
+
 simulator:
     max_slave_id: 1024
     modbus-rtu:

@@ -246,11 +246,8 @@ func (s *HTTPServerInstance) UpdateConfig(raw pluginapi.InstanceConfig) error {
 	newCfg := s.cfg
 
 	if raw != nil {
-		if v, ok := raw["address"].(string); ok && v != "" {
-			newCfg.Address = v
-		}
-		if v, ok := raw["base_path"].(string); ok && v != "" {
-			newCfg.BasePath = v
+		if v, ok := raw.(HTTPServerConfig); ok {
+			newCfg = v
 		}
 	}
 
@@ -321,16 +318,8 @@ func (f *HTTPServerFactory) New(id string, raw pluginapi.InstanceConfig) (plugin
 
 	var cfg HTTPServerConfig
 	if raw != nil {
-		if v, ok := raw["address"].(string); ok {
-			cfg.Address = v
-		}
-		if v, ok := raw["base_path"].(string); ok {
-			cfg.BasePath = v
-		}
-		if v, ok := raw["https"].(string); ok {
-			if v == "true" {
-				cfg.HTTPS = true
-			}
+		if v, ok := raw.(HTTPServerConfig); ok {
+			cfg = v
 		}
 	}
 

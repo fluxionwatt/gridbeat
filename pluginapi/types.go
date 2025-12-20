@@ -4,7 +4,8 @@ import "context"
 
 // InstanceConfig 保存单个实例的配置（通用 KV）
 // InstanceConfig holds configuration for a single plugin instance (generic key-value).
-type InstanceConfig map[string]any
+// type InstanceConfig map[string]any
+type InstanceConfig any
 
 // Instance 表示某个插件类型的一条运行实例
 // Instance represents a single runtime instance of a plugin type.

@@ -10,6 +10,7 @@ import (
 
 	"github.com/fluxionwatt/gridbeat/internal/config"
 	"github.com/fluxionwatt/gridbeat/internal/models"
+	"github.com/fluxionwatt/gridbeat/utils/modbus"
 	"github.com/glebarez/sqlite"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -59,9 +60,9 @@ func Open(cfg *config.Config, errorLogger *logrus.Logger) (*gorm.DB, error) {
 func SeedDefaultSettings(gdb *gorm.DB) error {
 	// helper: must marshal JSON (panic-free pattern)
 	// 工具函数：把任意值转成 JSON bytes
-	mustJSON := func(v any) []byte {
+	mustJSON := func(v any) models.ScalarJSON {
 		b, _ := json.Marshal(v)
-		return b
+		return models.ScalarJSON(b)
 	}
 
 	defaults := []models.Setting{
@@ -80,7 +81,8 @@ func SeedDefaultSettings(gdb *gorm.DB) error {
 			if err == nil {
 				continue
 			}
-			if err != nil && err != gorm.ErrRecordNotFound {
+			if err != gorm.ErrRecordNotFound {
+				fmt.Println("fdasfdsfas", d.Name)
 				return err
 			}
 			if err := tx.Create(&d).Error; err != nil {
@@ -140,15 +142,16 @@ func SyncSerials(gdb *gorm.DB, devices []string) error {
 			} else {
 				// Insert new row / 新增记录
 				row := models.Serial{
-					Device:   dev,
-					StopBits: 1,
-					Speed:    199,
-					DataBits: 10,
-					Parity:   1,
-					Disable:  false,
+					Device:        dev,
+					StopBits:      2,
+					Speed:         19200,
+					DataBits:      8,
+					Parity:        modbus.PARITY_NONE,
+					Disable:       false,
+					OnnectTimeout: 300 * time.Millisecond,
 				}
 				if err := tx.Create(&row).Error; err != nil {
-					return fmt.Errorf("create serial failed / 新增串口记录失败: %w", err)
+					return fmt.Errorf("create serial failed: %w", err)
 				}
 			}
 		}
@@ -157,13 +160,13 @@ func SyncSerials(gdb *gorm.DB, devices []string) error {
 		// If startup list is empty, it means delete all records / 如果启动参数为空，则删除全部记录
 		if len(normalized) == 0 {
 			if err := tx.Where("1 = 1").Delete(&models.Serial{}).Error; err != nil {
-				return fmt.Errorf("delete all serials failed / 删除全部串口记录失败: %w", err)
+				return fmt.Errorf("delete all serials failed: %w", err)
 			}
 			return nil
 		}
 
 		if err := tx.Where("device NOT IN ?", normalized).Delete(&models.Serial{}).Error; err != nil {
-			return fmt.Errorf("delete missing serials failed / 删除缺失串口记录失败: %w", err)
+			return fmt.Errorf("delete missing serials failed: %w", err)
 		}
 		return nil
 	})

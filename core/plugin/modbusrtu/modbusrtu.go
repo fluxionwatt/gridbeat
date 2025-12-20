@@ -230,45 +230,9 @@ func (m *ModbusInstance) UpdateConfig(raw pluginapi.InstanceConfig) error {
 	newCfg := m.cfg
 
 	if raw != nil {
-		if v, ok := raw["url"].(string); ok && v != "" {
-			newCfg.URL = v
-		}
-		if v, ok := raw["reg_type"].(string); ok && v != "" {
-			newCfg.RegType = v
-		}
-		if v, ok := raw["start_addr"].(uint16); ok {
-			newCfg.StartAddr = v
-		}
-		if v, ok := raw["quantity"].(uint16); ok {
-			newCfg.Quantity = v
-		}
-		// unit_id 可能以 int 形式传入，这里稍微宽松一点
-		// unit_id may be given as int, accept that too.
-		if v, ok := raw["unit_id"]; ok {
-			switch vv := v.(type) {
-			case uint8:
-				newCfg.UnitID = vv
-			case int:
-				if vv >= 0 && vv <= 255 {
-					newCfg.UnitID = uint8(vv)
-				}
-			case float64:
-				if vv >= 0 && vv <= 255 {
-					newCfg.UnitID = uint8(vv)
-				}
-			}
-		}
-		// timeout 和 poll_interval 使用字符串表示，形如 "1s"
-		// timeout and poll_interval accepted as strings like "1s".
-		if v, ok := raw["timeout"].(string); ok && v != "" {
-			if d, err := time.ParseDuration(v); err == nil {
-				newCfg.Timeout = d
-			}
-		}
-		if v, ok := raw["poll_interval"].(string); ok && v != "" {
-			if d, err := time.ParseDuration(v); err == nil {
-				newCfg.PollInterval = d
-			}
+
+		if v, ok := raw.(ModbusConfig); ok {
+			newCfg = v
 		}
 	}
 
@@ -351,41 +315,8 @@ func (f *ModbusFactory) New(id string, raw pluginapi.InstanceConfig) (pluginapi.
 	var cfg ModbusConfig
 
 	if raw != nil {
-		if v, ok := raw["url"].(string); ok {
-			cfg.URL = v
-		}
-		if v, ok := raw["reg_type"].(string); ok {
-			cfg.RegType = v
-		}
-		if v, ok := raw["start_addr"].(uint16); ok {
-			cfg.StartAddr = v
-		}
-		if v, ok := raw["quantity"].(uint16); ok {
-			cfg.Quantity = v
-		}
-		if v, ok := raw["unit_id"]; ok {
-			switch vv := v.(type) {
-			case uint8:
-				cfg.UnitID = vv
-			case int:
-				if vv >= 0 && vv <= 255 {
-					cfg.UnitID = uint8(vv)
-				}
-			case float64:
-				if vv >= 0 && vv <= 255 {
-					cfg.UnitID = uint8(vv)
-				}
-			}
-		}
-		if v, ok := raw["timeout"].(string); ok && v != "" {
-			if d, err := time.ParseDuration(v); err == nil {
-				cfg.Timeout = d
-			}
-		}
-		if v, ok := raw["poll_interval"].(string); ok && v != "" {
-			if d, err := time.ParseDuration(v); err == nil {
-				cfg.PollInterval = d
-			}
+		if v, ok := raw.(ModbusConfig); ok {
+			cfg = v
 		}
 	}
 
