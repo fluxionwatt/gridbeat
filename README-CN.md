@@ -62,7 +62,8 @@ go install github.com/go-task/task/v3/cmd/task@latest
 go install github.com/goreleaser/goreleaser/v2@latest
 
 ### Mac
-brew install go-task goreleaser
+brew install go-task goreleaser zig
+
 
 # 下载源代码
 $ git clone https://github.com/fluxionwatt/gridbeat
@@ -91,7 +92,7 @@ docker build -f docker/Dockerfile -t fluxionwatt/gridbeat:v1.0.0 ./
 $ docker run -d --name gridbeat -p 8080:8080 fluxionwatt/gridbeat:1.0.0
 ```
 
-### [采集 Modbus TCP 数据并通过 MQTT 发送](./docs/quick_start/quick_start_cn.md)
+### [采集 Modbus TCP 数据并通过 MQTT 发送](https://www.fluxionwatt.com/gridbeat/zh_CN/quick-start/quick-start.html)
 
 ## 社区
 

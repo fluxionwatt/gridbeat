@@ -10,12 +10,11 @@ import (
 	"github.com/gofiber/contrib/v3/websocket"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/pprof"
-	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/static"
 	"github.com/sirupsen/logrus"
 )
 
-func NewHandler(extra string, errorLogger *logrus.Logger, accessLogger *logrus.Logger) *fiber.App {
+func NewHandler(errorLogger *logrus.Logger, accessLogger *logrus.Logger) *fiber.App {
 
 	app := fiber.New(fiber.Config{
 		// 统一错误处理 + logrus
@@ -51,29 +50,24 @@ func NewHandler(extra string, errorLogger *logrus.Logger, accessLogger *logrus.L
 	app.Use(pprof.New(pprof.Config{Prefix: "/endpoint-prefix"}))
 	//app.Use(requestid.New())
 
-	app.Use("/public/extra", static.New(extra, static.Config{
-		Browse:    true,
-		Download:  true,
-		ByteRange: true,
-		Compress:  true,
-	}))
-
 	// JWT Middleware
 	//app.Use(jwtware.New(jwtware.Config{
 	//	SigningKey: jwtware.SigningKey{Key: []byte("secret")},
 	//}))
 	app.Use(AccessLogMiddleware(accessLogger))
 
-	app.Use(recover.New(recover.Config{
-		EnableStackTrace: true,
-		StackTraceHandler: func(c fiber.Ctx, e interface{}) {
-			errorLogger.WithFields(logrus.Fields{
-				"path":   c.Path(),
-				"ip":     c.IP(),
-				"method": c.Method(),
-			}).Errorf("fiber panic recovered: %v", e)
-		},
-	}))
+	/*
+		app.Use(recover.New(recover.Config{
+			EnableStackTrace: true,
+			StackTraceHandler: func(c fiber.Ctx, e interface{}) {
+				errorLogger.WithFields(logrus.Fields{
+					"path":   c.Path(),
+					"ip":     c.IP(),
+					"method": c.Method(),
+				}).Errorf("fiber panic recovered: %v", e)
+			},
+		}))
+	*/
 
 	app.Get("/metrics", monitor.New(monitor.Config{Title: "MyService Metrics Page"}))
 

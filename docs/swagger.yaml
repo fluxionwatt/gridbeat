@@ -1,4 +1,9 @@
 definitions:
+  api.APIError:
+    properties:
+      message:
+        type: string
+    type: object
   api.AdminCreateUserRequest:
     properties:
       password:
@@ -119,6 +124,8 @@ definitions:
       name:
         type: string
     type: object
+  api.CreateSettingRequest:
+    type: object
   api.LoginWebRequest:
     properties:
       password:
@@ -173,6 +180,38 @@ definitions:
       type:
         $ref: '#/definitions/models.TokenType'
     type: object
+  api.UpdateSettingRequest:
+    type: object
+  api.UpsertSettingByNameRequest:
+    type: object
+  models.Setting:
+    properties:
+      created_at:
+        type: string
+      id:
+        description: |-
+          UUID string primary key
+          UUID 字符串主键
+        type: string
+      name:
+        description: |-
+          Unique key name
+          唯一配置名
+        type: string
+      updated_at:
+        type: string
+      value:
+        description: |-
+          ValueJSON 存放 JSON 原始值（number/string/bool）
+          Swagger 用 string 展示，实际请求可传 10 / "abc" / true
+        example: "true"
+        type: string
+      value_type:
+        description: |-
+          Discriminator for value type: int|string|bool
+          值类型判别字段：int|string|bool
+        type: string
+    type: object
   models.TokenType:
     enum:
     - web
@@ -189,9 +228,6 @@ definitions:
       message:
         description: English message / 英文信息
         type: string
-      message_zh:
-        description: Chinese message / 中文信息
-        type: string
     type: object
   response.Envelope-api_AdminUserItem:
     properties:
@@ -201,9 +237,6 @@ definitions:
         $ref: '#/definitions/api.AdminUserItem'
       message:
         description: English message / 英文信息
-        type: string
-      message_zh:
-        description: Chinese message / 中文信息
         type: string
     type: object
   response.Envelope-api_AuditLogPage:
@@ -215,9 +248,6 @@ definitions:
       message:
         description: English message / 英文信息
         type: string
-      message_zh:
-        description: Chinese message / 中文信息
-        type: string
     type: object
   response.Envelope-api_CreateAPITokenResponse:
     properties:
@@ -228,9 +258,6 @@ definitions:
       message:
         description: English message / 英文信息
         type: string
-      message_zh:
-        description: Chinese message / 中文信息
-        type: string
     type: object
   response.Envelope-api_LoginWebResponse:
     properties:
@@ -240,9 +267,6 @@ definitions:
         $ref: '#/definitions/api.LoginWebResponse'
       message:
         description: English message / 英文信息
-        type: string
-      message_zh:
-        description: Chinese message / 中文信息
         type: string
     type: object
   response.Envelope-array_api_AdminTokenItem:
@@ -256,9 +280,6 @@ definitions:
       message:
         description: English message / 英文信息
         type: string
-      message_zh:
-        description: Chinese message / 中文信息
-        type: string
     type: object
   response.Envelope-array_api_AdminUserItem:
     properties:
@@ -270,9 +291,6 @@ definitions:
         type: array
       message:
         description: English message / 英文信息
-        type: string
-      message_zh:
-        description: Chinese message / 中文信息
         type: string
     type: object
   response.Envelope-array_api_SessionItem:
@@ -286,9 +304,6 @@ definitions:
       message:
         description: English message / 英文信息
         type: string
-      message_zh:
-        description: Chinese message / 中文信息
-        type: string
     type: object
   response.Envelope-array_api_TokenInfo:
     properties:
@@ -300,9 +315,6 @@ definitions:
         type: array
       message:
         description: English message / 英文信息
-        type: string
-      message_zh:
-        description: Chinese message / 中文信息
         type: string
     type: object
   response.ErrorCode:
@@ -813,4 +825,206 @@ paths:
       summary: Revoke my token / 撤销我的指定 Token
       tags:
       - me
+  /api/v1/settings:
+    get:
+      description: List all settings
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Setting'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: List settings
+      tags:
+      - Setting
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: create setting
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.CreateSettingRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Setting'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Create setting
+      tags:
+      - Setting
+  /api/v1/settings/{id}:
+    delete:
+      description: Delete a setting by UUID id.
+      parameters:
+      - description: setting id (uuid)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Delete setting by id
+      tags:
+      - Setting
+    get:
+      description: Get a setting by UUID id.
+      parameters:
+      - description: setting id (uuid)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Setting'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Get setting by id
+      tags:
+      - Setting
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: setting id (uuid)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: update setting
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.UpdateSettingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Setting'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Update setting by id
+      tags:
+      - Setting
+  /api/v1/settings/by-name/{name}:
+    get:
+      description: Get a setting by unique name.
+      parameters:
+      - description: setting name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Setting'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Get setting by name
+      tags:
+      - Setting
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Create if missing; otherwise update value (and optionally value_type).
+        value must match value_type: int|string|bool.
+      parameters:
+      - description: setting name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: upsert payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/api.UpsertSettingByNameRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Setting'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.APIError'
+      summary: Upsert setting by name
+      tags:
+      - Setting
 swagger: "2.0"

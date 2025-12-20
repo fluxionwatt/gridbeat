@@ -83,7 +83,7 @@ func loadSoFactories(dir string) {
 			continue
 		}
 
-		log.Printf("  sym type: %T", sym)
+		//log.Printf("  sym type: %T", sym)
 
 		// 变量导出 => *pluginapi.Factory
 		// Variable export => *pluginapi.Factory.

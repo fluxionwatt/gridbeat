@@ -755,9 +755,320 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v1/settings": {
+            "get": {
+                "description": "List all settings",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Setting"
+                ],
+                "summary": "List settings",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Setting"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIError"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Setting"
+                ],
+                "summary": "Create setting",
+                "parameters": [
+                    {
+                        "description": "create setting",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.CreateSettingRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.Setting"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIError"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/settings/by-name/{name}": {
+            "get": {
+                "description": "Get a setting by unique name.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Setting"
+                ],
+                "summary": "Get setting by name",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "setting name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Setting"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIError"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Create if missing; otherwise update value (and optionally value_type).\nvalue must match value_type: int|string|bool.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Setting"
+                ],
+                "summary": "Upsert setting by name",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "setting name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "upsert payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.UpsertSettingByNameRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Setting"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/settings/{id}": {
+            "get": {
+                "description": "Get a setting by UUID id.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Setting"
+                ],
+                "summary": "Get setting by id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "setting id (uuid)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Setting"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIError"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a setting by UUID id.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Setting"
+                ],
+                "summary": "Delete setting by id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "setting id (uuid)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIError"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Setting"
+                ],
+                "summary": "Update setting by id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "setting id (uuid)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "update setting",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.UpdateSettingRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Setting"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.APIError"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "api.APIError": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
         "api.AdminCreateUserRequest": {
             "type": "object",
             "properties": {
@@ -943,6 +1254,9 @@ const docTemplate = `{
                 }
             }
         },
+        "api.CreateSettingRequest": {
+            "type": "object"
+        },
         "api.LoginWebRequest": {
             "type": "object",
             "properties": {
@@ -1026,6 +1340,40 @@ const docTemplate = `{
                 }
             }
         },
+        "api.UpdateSettingRequest": {
+            "type": "object"
+        },
+        "api.UpsertSettingByNameRequest": {
+            "type": "object"
+        },
+        "models.Setting": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "description": "UUID string primary key\nUUID 字符串主键",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Unique key name\n唯一配置名",
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "value": {
+                    "description": "ValueJSON 存放 JSON 原始值（number/string/bool）\nSwagger 用 string 展示，实际请求可传 10 / \"abc\" / true",
+                    "type": "string",
+                    "example": "true"
+                },
+                "value_type": {
+                    "description": "Discriminator for value type: int|string|bool\n值类型判别字段：int|string|bool",
+                    "type": "string"
+                }
+            }
+        },
         "models.TokenType": {
             "type": "string",
             "enum": [
@@ -1047,10 +1395,6 @@ const docTemplate = `{
                 "message": {
                     "description": "English message / 英文信息",
                     "type": "string"
-                },
-                "message_zh": {
-                    "description": "Chinese message / 中文信息",
-                    "type": "string"
                 }
             }
         },
@@ -1065,10 +1409,6 @@ const docTemplate = `{
                 },
                 "message": {
                     "description": "English message / 英文信息",
-                    "type": "string"
-                },
-                "message_zh": {
-                    "description": "Chinese message / 中文信息",
                     "type": "string"
                 }
             }
@@ -1085,10 +1425,6 @@ const docTemplate = `{
                 "message": {
                     "description": "English message / 英文信息",
                     "type": "string"
-                },
-                "message_zh": {
-                    "description": "Chinese message / 中文信息",
-                    "type": "string"
                 }
             }
         },
@@ -1104,10 +1440,6 @@ const docTemplate = `{
                 "message": {
                     "description": "English message / 英文信息",
                     "type": "string"
-                },
-                "message_zh": {
-                    "description": "Chinese message / 中文信息",
-                    "type": "string"
                 }
             }
         },
@@ -1122,10 +1454,6 @@ const docTemplate = `{
                 },
                 "message": {
                     "description": "English message / 英文信息",
-                    "type": "string"
-                },
-                "message_zh": {
-                    "description": "Chinese message / 中文信息",
                     "type": "string"
                 }
             }
@@ -1145,10 +1473,6 @@ const docTemplate = `{
                 "message": {
                     "description": "English message / 英文信息",
                     "type": "string"
-                },
-                "message_zh": {
-                    "description": "Chinese message / 中文信息",
-                    "type": "string"
                 }
             }
         },
@@ -1166,10 +1490,6 @@ const docTemplate = `{
                 },
                 "message": {
                     "description": "English message / 英文信息",
-                    "type": "string"
-                },
-                "message_zh": {
-                    "description": "Chinese message / 中文信息",
                     "type": "string"
                 }
             }
@@ -1189,10 +1509,6 @@ const docTemplate = `{
                 "message": {
                     "description": "English message / 英文信息",
                     "type": "string"
-                },
-                "message_zh": {
-                    "description": "Chinese message / 中文信息",
-                    "type": "string"
                 }
             }
         },
@@ -1210,10 +1526,6 @@ const docTemplate = `{
                 },
                 "message": {
                     "description": "English message / 英文信息",
-                    "type": "string"
-                },
-                "message_zh": {
-                    "description": "Chinese message / 中文信息",
                     "type": "string"
                 }
             }

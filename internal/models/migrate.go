@@ -12,7 +12,7 @@ import (
 // Migrate runs auto migrations.
 // Migrate 执行数据库自动迁移。
 func Migrate(db *gorm.DB) error {
-	return db.AutoMigrate(&User{}, &AuthToken{}, &AuditLog{})
+	return db.AutoMigrate(&User{}, &AuthToken{}, &AuditLog{}, &Setting{}, &Serial{})
 }
 
 // EnsureRootUser ensures the super user "root" exists.

@@ -16,9 +16,11 @@ import (
 	"github.com/fluxionwatt/gridbeat/pluginapi"
 	"github.com/google/uuid"
 	mqtt "github.com/mochi-mqtt/server/v2"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	_ "github.com/fluxionwatt/gridbeat/core/plugin/goose"
 	_ "github.com/fluxionwatt/gridbeat/core/plugin/http"
 	_ "github.com/fluxionwatt/gridbeat/core/plugin/modbusrtu"
 	_ "github.com/fluxionwatt/gridbeat/core/plugin/stream"
@@ -60,7 +62,7 @@ func handleSignals(logger *pluginapi.ReopenLogger) {
 			log.Println("exiting")
 			removePidFile(core.Gconfig.PID)
 
-			logger.Close()
+			//logger.Close()
 			os.Exit(0)
 		}
 	}
@@ -120,6 +122,21 @@ var serverCmd = &cobra.Command{
 			return err
 		}
 
+		cfg.Serial = append(cfg.Serial, "fasfdsf")
+		cfg.Serial = append(cfg.Serial, "yyyy")
+		cfg.Serial = append(cfg.Serial, "xxx")
+
+		if err := db.SyncSerials(gdb, cfg.Serial); err != nil {
+			return err
+		}
+
+		// 初始化默认 setting 数据（只补缺，不覆盖）
+		// Seed default settings (insert missing only, do NOT overwrite)
+		if err := db.SeedDefaultSettings(gdb); err != nil {
+			//return fmt.Sprintf("seed default settings failed: %v", err)
+			return err
+		}
+
 		// mqtt
 		var server *mqtt.Server
 		if server, err = core.ServerMQTT(logger.MqttLogger); err != nil {
@@ -141,10 +158,11 @@ var serverCmd = &cobra.Command{
 
 		// 宿主环境 / host environment
 		env := &pluginapi.HostEnv{
-			Logger: logger,
-			DB:     gdb,
-			MQTT:   server,
-			Conf:   &core.Gconfig,
+			Logger:    logger,
+			DB:        gdb,
+			MQTT:      server,
+			Conf:      &core.Gconfig,
+			PluginLog: logrus.NewEntry(logger.RunLogger),
 		}
 
 		// 带 rootCtx + env 的 InstanceManager

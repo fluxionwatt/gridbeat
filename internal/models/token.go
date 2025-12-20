@@ -19,7 +19,7 @@ const (
 // AuthToken stores token metadata (server-side session control).
 // AuthToken 存储 token 元数据（服务端可控会话）。
 type AuthToken struct {
-	ID string `gorm:"primaryKey" json:"id"`
+	ID uint `gorm:"primaryKey" json:"id"`
 
 	// JTI is the unique identifier of JWT.
 	// JTI 是 JWT 的唯一标识。

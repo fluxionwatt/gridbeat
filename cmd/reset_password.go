@@ -19,7 +19,7 @@ import (
 func resetPasswordCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "reset-password",
-		Short: "Reset root password to admin / 重置 root 密码为 admin",
+		Short: "Reset root password to admin",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			//cfg, err := config.Load(cfgFile)
 			//if err != nil {

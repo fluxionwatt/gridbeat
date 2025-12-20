@@ -11,6 +11,7 @@ import (
 	"github.com/fluxionwatt/gridbeat/internal/api"
 	"github.com/fluxionwatt/gridbeat/pluginapi"
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/static"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -38,7 +39,7 @@ type HTTPServerInstance struct {
 	typ string
 	cfg HTTPServerConfig
 
-	logger *logrus.Logger
+	logger logrus.FieldLogger // 实例级 logger / per-instance logger
 	app    *fiber.App
 
 	// parentCtx：Init 传入的父 context，用于重启时复用
@@ -87,13 +88,27 @@ func (s *HTTPServerInstance) Init(parent context.Context, env *pluginapi.HostEnv
 	// 设置 logger：优先用 HostEnv.Logger，其次自己创建
 	// Setup logger: prefer HostEnv.Logger, otherwise create a new one.
 	if env != nil && env.Logger != nil {
-		s.logger = env.Logger.RunLogger
+		s.logger = env.PluginLog.WithField("plugin", "http").WithField("instance", s.id)
 	}
 	// 为该实例创建独立 ctx，用于控制 Fiber 和相关协程生命周期
 	// Create an instance-level ctx, to control Fiber and related goroutines.
 	s.ctx, s.cancel = context.WithCancel(parent)
 
-	s.app = NewHandler(core.Gconfig.ExtraPath, env.Logger.RunLogger, env.Logger.AccessLogger)
+	s.app = NewHandler(env.Logger.RunLogger, env.Logger.AccessLogger)
+
+	s.app.Use("/public/extra", static.New(core.Gconfig.ExtraPath, static.Config{
+		Browse:    true,
+		Download:  true,
+		ByteRange: true,
+		Compress:  true,
+	}))
+
+	s.app.Use("/public/log", static.New(core.Gconfig.LogPath, static.Config{
+		Browse:    true,
+		Download:  true,
+		ByteRange: true,
+		Compress:  true,
+	}))
 
 	s.Server.Cfg = env.Conf
 	s.Server.DB = env.DB

@@ -61,11 +61,7 @@ func (g *GooseInstance) Init(parent context.Context, env *pluginapi.HostEnv) err
 	// - If HostEnv has Logger, use it with fields
 	// - Otherwise, create a new logger.
 	if env != nil && env.Logger != nil {
-		g.logger = env.Logger.WithField("plugin", "goose").WithField("instance", g.id)
-	} else if g.logger == nil {
-		l := logrus.New()
-		l.SetLevel(logrus.InfoLevel)
-		g.logger = l.WithField("plugin", "goose").WithField("instance", g.id)
+		g.logger = env.PluginLog.WithField("plugin", "goose").WithField("instance", g.id)
 	}
 
 	// 实例级 ctx / instance-level ctx

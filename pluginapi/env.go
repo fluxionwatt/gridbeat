@@ -3,6 +3,7 @@ package pluginapi
 import (
 	"github.com/fluxionwatt/gridbeat/internal/config"
 	mqtt "github.com/mochi-mqtt/server/v2"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -17,6 +18,8 @@ type HostEnv struct {
 	Conf   *config.Config
 	DB     *gorm.DB
 	Logger *ReopenLogger
+
+	PluginLog logrus.FieldLogger
 
 	MQTT *mqtt.Server
 }

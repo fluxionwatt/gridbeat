@@ -19,7 +19,7 @@ type ModbusInstance struct {
 
 	cfg ModbusConfig
 
-	logger *logrus.Logger
+	logger logrus.FieldLogger // 实例级 logger / per-instance logger
 	client *modbus.ModbusClient
 
 	parentCtx context.Context
@@ -74,7 +74,7 @@ func (m *ModbusInstance) Init(parent context.Context, env *pluginapi.HostEnv) er
 	// logger：优先用 HostEnv.Logger，否则新建一个
 	// logger: prefer HostEnv.Logger, otherwise create a new one.
 	if env != nil && env.Logger != nil {
-		m.logger = env.Logger.RunLogger
+		m.logger = env.PluginLog.WithField("plugin", "modbusrtu").WithField("instance", m.id)
 	}
 	// 实例级 ctx / instance-level ctx
 	m.ctx, m.cancel = context.WithCancel(parent)

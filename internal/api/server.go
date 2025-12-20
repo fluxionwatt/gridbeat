@@ -3,10 +3,12 @@ package api
 import (
 	"time"
 
+	_ "github.com/fluxionwatt/gridbeat/docs"
 	"github.com/fluxionwatt/gridbeat/internal/auth"
 	"github.com/fluxionwatt/gridbeat/internal/config"
 	"github.com/fluxionwatt/gridbeat/internal/models"
 	"github.com/fluxionwatt/gridbeat/internal/response"
+	swaggo "github.com/gofiber/contrib/v3/swaggo"
 	"github.com/gofiber/fiber/v3"
 	"gorm.io/gorm"
 )
@@ -28,11 +30,14 @@ func New(db *gorm.DB, cfg *config.Config) *Server {
 // App 构建包含路由的 Fiber 应用。
 func (s *Server) App(app *fiber.App) *fiber.App {
 
+	// Swagger UI: http://localhost:8080/swagger/index.html
+	app.Get("/swagger/*", swaggo.HandlerDefault)
+
 	v1 := app.Group("/api/v1")
 
 	// Public / 无需鉴权 API
 	v1.Get("/health", func(c fiber.Ctx) error {
-		return response.OK(c, fiber.Map{"status": "ok", "status_zh": "正常"})
+		return response.OK(c, fiber.Map{"status": "ok"})
 	})
 	v1.Get("/public/ping", func(c fiber.Ctx) error {
 		return response.OK(c, fiber.Map{"pong": true})
@@ -76,6 +81,44 @@ func (s *Server) App(app *fiber.App) *fiber.App {
 	admin.Delete("/tokens/:jti", s.AdminRevokeToken)
 
 	admin.Get("/audit/logs", s.AdminListAuditLogs)
+
+	serial := v1.Group("/serial", auth.AuthMiddleware(s.DB, s.Cfg.Auth.JWT.Secret))
+	registerSerialRoutes(serial, s.DB)
+
+	// settings
+	settings := v1.Group("/settings", auth.AuthMiddleware(s.DB, s.Cfg.Auth.JWT.Secret))
+
+	// 列表 / List
+	// GET /api/v1/settings
+	settings.Get("/", s.ListSettings)
+
+	// 创建 / Create
+	// POST /api/v1/settings
+	settings.Post("/", s.CreateSetting)
+
+	// 按 ID 更新（支持 value_type + value 的 PATCH）
+	// Update by ID (PATCH value_type + value)
+	// PATCH /api/v1/settings/:id
+	settings.Patch("/:id", s.UpdateSettingByID)
+
+	// ------- 下面是“可选”路由（如果你已有对应 handler，就取消注释） -------
+	// The following routes are optional (uncomment if handlers exist).
+
+	// // 按 ID 获取 / Get by ID
+	// // GET /api/v1/settings/:id
+	settings.Get("/:id", s.GetSettingByID)
+
+	// // 按 name 获取 / Get by name
+	// // GET /api/v1/settings/by-name/:name
+	settings.Get("/by-name/:name", s.GetSettingByName)
+
+	// // 按 name upsert value / Upsert value by name
+	// // PUT /api/v1/settings/by-name/:name
+	settings.Put("/by-name/:name", s.UpsertSettingValueByName)
+
+	// // 按 ID 删除 / Delete by ID
+	// // DELETE /api/v1/settings/:id
+	settings.Delete("/:id", s.DeleteSettingByID)
 
 	return app
 }

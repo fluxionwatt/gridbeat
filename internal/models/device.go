@@ -24,12 +24,6 @@ type Channel struct {
 	ByteOrder4      string        // 4 字节数据字节序
 	ByteOrder8      string        // 8 字节数据字节序
 	AddrStart       bool
-	SendInterval    time.Duration //指令发送间隔 (ms)
-	SerialName      string
-	StopBits        uint
-	Speed           uint
-	DataBits        uint
-	Parity          uint
 	TCPIPAddr       string
 	TCPPort         uint16
 	BackupTCPIPAddr string

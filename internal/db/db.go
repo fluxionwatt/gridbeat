@@ -1,9 +1,11 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/fluxionwatt/gridbeat/internal/config"
@@ -52,4 +54,117 @@ func Open(cfg *config.Config, errorLogger *logrus.Logger) (*gorm.DB, error) {
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	return db, nil
+}
+
+func SeedDefaultSettings(gdb *gorm.DB) error {
+	// helper: must marshal JSON (panic-free pattern)
+	// 工具函数：把任意值转成 JSON bytes
+	mustJSON := func(v any) []byte {
+		b, _ := json.Marshal(v)
+		return b
+	}
+
+	defaults := []models.Setting{
+		{Name: "site_name", ValueType: "string", ValueJSON: mustJSON("Energy Gateway")},
+		{Name: "timezone", ValueType: "string", ValueJSON: mustJSON("Asia/Tokyo")},
+		{Name: "lang", ValueType: "string", ValueJSON: mustJSON("zh-CN")},
+		{Name: "log_level", ValueType: "string", ValueJSON: mustJSON("info")},
+		{Name: "feature_swagger", ValueType: "bool", ValueJSON: mustJSON(true)},
+		{Name: "sampling_interval_sec", ValueType: "int", ValueJSON: mustJSON(10)},
+	}
+
+	return gdb.Transaction(func(tx *gorm.DB) error {
+		for _, d := range defaults {
+			var existing models.Setting
+			err := tx.Where("name = ?", d.Name).First(&existing).Error
+			if err == nil {
+				continue
+			}
+			if err != nil && err != gorm.ErrRecordNotFound {
+				return err
+			}
+			if err := tx.Create(&d).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// SyncSerials syncs the serial table with startup device list / 根据启动参数同步 serial 表
+//
+// Rules / 规则：
+// 1) Devices present in list:
+//   - insert if missing / 不存在则新增
+//   - update UpdatedAt if exists / 存在则更新时间（也可更新其他字段）
+//
+// 2) Devices NOT present in list: delete the record / 不在列表中的设备删除记录
+func SyncSerials(gdb *gorm.DB, devices []string) error {
+	// Normalize, trim, deduplicate / 规范化、去空格、去重
+	set := make(map[string]struct{}, len(devices))
+	normalized := make([]string, 0, len(devices))
+	for _, d := range devices {
+		d = strings.TrimSpace(d)
+		if d == "" {
+			continue
+		}
+		if _, ok := set[d]; ok {
+			continue
+		}
+		set[d] = struct{}{}
+		normalized = append(normalized, d)
+	}
+
+	now := time.Now()
+
+	return gdb.Transaction(func(tx *gorm.DB) error {
+		// Load existing records / 读取现有记录
+		var existing []models.Serial
+		if err := tx.Find(&existing).Error; err != nil {
+			return fmt.Errorf("query serials failed / 查询串口表失败: %w", err)
+		}
+		existingSet := make(map[string]models.Serial, len(existing))
+		for _, s := range existing {
+			existingSet[s.Device] = s
+		}
+
+		// Upsert for present devices / 对存在的设备进行 upsert
+		for _, dev := range normalized {
+			if s, ok := existingSet[dev]; ok {
+				// Update updated_at to reflect current boot config / 更新时间反映当前启动配置
+				if err := tx.Model(&models.Serial{}).
+					Where("id = ?", s.ID).
+					Updates(map[string]any{"updated_at": now}).Error; err != nil {
+					return fmt.Errorf("update serial failed / 更新串口记录失败: %w", err)
+				}
+			} else {
+				// Insert new row / 新增记录
+				row := models.Serial{
+					Device:   dev,
+					StopBits: 1,
+					Speed:    199,
+					DataBits: 10,
+					Parity:   1,
+					Disable:  false,
+				}
+				if err := tx.Create(&row).Error; err != nil {
+					return fmt.Errorf("create serial failed / 新增串口记录失败: %w", err)
+				}
+			}
+		}
+
+		// Delete records not in list / 删除不在列表中的记录
+		// If startup list is empty, it means delete all records / 如果启动参数为空，则删除全部记录
+		if len(normalized) == 0 {
+			if err := tx.Where("1 = 1").Delete(&models.Serial{}).Error; err != nil {
+				return fmt.Errorf("delete all serials failed / 删除全部串口记录失败: %w", err)
+			}
+			return nil
+		}
+
+		if err := tx.Where("device NOT IN ?", normalized).Delete(&models.Serial{}).Error; err != nil {
+			return fmt.Errorf("delete missing serials failed / 删除缺失串口记录失败: %w", err)
+		}
+		return nil
+	})
 }

@@ -2,7 +2,7 @@ debug: true
 log-path: ./
 data-path: ./
 extra-path: ./
-
+plugins: /usr/lib/gridbeat/plugins
 mqtt:
     port: 1883
     host: localhost

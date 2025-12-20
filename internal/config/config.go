@@ -13,7 +13,6 @@ import (
 // Config 保存应用配置。
 type Config struct {
 	Debug       bool   `mapstructure:"debug"`
-	Daemon      bool   `mapstructure:"daemon"`
 	DisableAuth bool   `mapstructure:"disable_auth"`
 	Plugins     string `mapstructure:"plugins"`
 	LogPath     string `mapstructure:"log-path"`
@@ -33,7 +32,7 @@ type Config struct {
 		Host string `mapstructure:"host"`
 		Port uint16 `mapstructure:"port"`
 	} `mapstructure:"mqtt"`
-
+	Serial    []string `mapstructure:"serial"`
 	Simulator struct {
 		MaxSlaveId uint16 `mapstructure:"max_slave_id"`
 		ModbusRTU  []struct {
@@ -68,10 +67,6 @@ type Config struct {
 	Audit struct {
 		RetentionDays int `mapstructure:"retention_days"`
 	} `mapstructure:"audit"`
-
-	Server struct {
-		Listen string `mapstructure:"listen"`
-	} `mapstructure:"server"`
 }
 
 // Load loads config from file and environment variables.
@@ -115,21 +110,6 @@ func Load(configFile string) (*Config, error) {
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("unmarshal config failed: %w", err)
-	}
-
-	// Normalize / 规范化
-	//cfg.App.DB.Dir = filepath.Clean(cfg.App.DB.Dir)
-	if cfg.Auth.Web.IdleMinutes <= 0 {
-		cfg.Auth.Web.IdleMinutes = 30
-	}
-	if cfg.Audit.RetentionDays <= 0 {
-		cfg.Audit.RetentionDays = 120
-	}
-	if strings.TrimSpace(cfg.Auth.JWT.Issuer) == "" {
-		cfg.Auth.JWT.Issuer = "gridbeat"
-	}
-	if strings.TrimSpace(cfg.Server.Listen) == "" {
-		cfg.Server.Listen = ":8080"
 	}
 
 	return &cfg, nil
