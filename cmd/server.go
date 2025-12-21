@@ -85,7 +85,6 @@ var serverCmd = &cobra.Command{
 		if logger, err = pluginapi.NewReopenLogger(core.Gconfig.LogPath, core.Gconfig.Debug); err != nil {
 			cobra.CheckErr(err)
 		}
-		defer logger.Close()
 
 		fmt.Printf("use log path: %s\n", core.Gconfig.LogPath)
 
@@ -115,6 +114,47 @@ var serverCmd = &cobra.Command{
 			cobra.CheckErr(fmt.Errorf("db migrate %w", err))
 			return
 		}
+
+		// Build registry
+		reg := models.NewRegistry()
+
+		// 注册模型（可选：给某个模型设置默认 Preload）
+		if err := reg.Register(gdb, models.Channel{} /*, modelutil.WithDefaultPreloads("Profile")*/); err != nil {
+			cobra.CheckErr(fmt.Errorf("register channel %w", err))
+			return
+		}
+
+		/*
+			ctx := context.Background()
+
+			// ✅ 只传 table + pkValue
+			obj, err := reg.FindByTablePK(ctx, db, "users", 1)
+			if err != nil {
+				log.Fatal(err)
+			}
+			u := obj.(*example.User)
+			fmt.Println("User:", u.ID, u.Name, u.Email)
+
+			// ✅ 仍然走 Model(&T{})，可选额外 Preload / Scope（不影响你“只传 table+pkValue”）
+			obj2, err := reg.FindByTablePKWith(ctx, db, "devices", int64(1),
+				modelutil.WithScopes(func(tx *gorm.DB) *gorm.DB {
+					return tx.Where("tag = ?", "meter")
+				}),
+			)
+			if err != nil {
+				log.Fatal(err)
+			}
+			d := obj2.(*example.Device)
+			fmt.Println("Device:", d.ID, d.SN, d.Tag)
+
+			// ✅ 如果你想拿到非指针的 struct 值
+			val, err := reg.FindByTablePKValue(ctx, db, "users", 1)
+			if err != nil {
+				log.Fatal(err)
+			}
+			u2 := val.(example.User)
+			fmt.Println("User value:", u2.ID, u2.Name)
+		*/
 
 		// Ensure root exists ("admin" password by default if created).
 		// 确保 root 存在（首次创建默认密码 admin）。
@@ -149,10 +189,25 @@ var serverCmd = &cobra.Command{
 		// 捕获信号 / capture OS signals.
 		go func() {
 			ch := make(chan os.Signal, 1)
-			signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
-			s := <-ch
-			log.Printf("got signal: %v, cancelling root ctx", s)
-			rootCancel()
+			signal.Notify(ch, syscall.SIGUSR1, syscall.SIGTERM, syscall.SIGINT)
+
+			for sig := range ch {
+				switch sig {
+				case syscall.SIGUSR1:
+					log.Println("received SIGUSR1, reopening log file")
+					if err := logger.Reopen(); err != nil {
+						log.Printf("reopen log failed: %v\n", err)
+					}
+				case syscall.SIGTERM, syscall.SIGINT:
+					log.Println("exiting")
+					removePidFile(core.Gconfig.PID)
+
+					rootCancel()
+					logger.Close()
+
+					os.Exit(0)
+				}
+			}
 		}()
 
 		// 宿主环境 / host environment
@@ -189,8 +244,6 @@ var serverCmd = &cobra.Command{
 			cobra.CheckErr(fmt.Errorf("already running? %w", err))
 		}
 		defer removePidFile(core.Gconfig.PID)
-
-		go handleSignals(logger)
 
 		if err := server.Serve(); err != nil {
 			logger.MqttLogger.Error(err)

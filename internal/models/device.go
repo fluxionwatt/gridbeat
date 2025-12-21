@@ -7,44 +7,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// Channel 通道
-type Channel struct {
-	Plugin          string        `gorm:"column:plugin;size:128;not null" json:"plugin"`
-	UUID            string        `gorm:"primaryKey;column:uuid;size:36;uniqueIndex;not null" json:"uuid"`
-	Name            string        `gorm:"column:name;size:150;uniqueIndex;not null" json:"name"`
-	Delay           time.Duration `gorm:"column:delay;not null" json:"delay"` // 时延 单位 毫秒
-	URL             string        `gorm:"column:url;size:128;not null" json:"url"`
-	DebugLog        bool          `gorm:"column:debug_log" json:"debug_log"`
-	PhysicalLink    string        // serial、RTUclient、RTUserver、TCPclient、TCPserver
-	VerifyHeader    bool          // 校验报文头
-	OnnectTimeout   time.Duration // 连接超时时间 (ms)，默认 3s
-	Downgrade       bool          // 设备降级
-	RetryMax        uint64        // 最大重试次数,发送读指令失败后最大重试次数
-	RetryInterval   time.Duration // 指令重新发送间隔 (ms)
-	ByteOrder4      string        // 4 字节数据字节序
-	ByteOrder8      string        // 8 字节数据字节序
-	AddrStart       bool
-	TCPIPAddr       string
-	TCPPort         uint16
-	BackupTCPIPAddr string
-	BackupTCPPort   uint16
-	Disable         bool
-	CreatedAt       time.Time     `json:"created_at"`
-	UpdatedAt       time.Time     `json:"updated_at"`
-	Working         bool          `gorm:"-" json:"working"`       // 工作状态
-	Linking         bool          `gorm:"-" json:"linking"`       // 连接状态
-	CurrentDelay    time.Duration `gorm:"-" json:"current_delay"` // 当前采集延迟
-	BytesSent       uint64        `gorm:"-" json:"bytes_sent"`
-	BytesReceived   uint64        `gorm:"-" json:"bytes_received"`
-	PointsToalRead  uint64        `gorm:"-" json:"points_total_read"` // 点位读取数总计
-	PointsErrorRead uint64        `gorm:"-" json:"points_error_read"` // 点位读取错误数总计
-}
-
-// TableName 用来显式指定表名（可选）
-func (Channel) TableName() string {
-	return "channel"
-}
-
 type RegType string
 
 const (
