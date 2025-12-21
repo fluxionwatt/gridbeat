@@ -23,3 +23,25 @@ type HostEnv struct {
 
 	MQTT *mqtt.Server
 }
+
+const depsKey = "__global_deps__"
+
+func Inject(db *gorm.DB, deps *HostEnv) *gorm.DB {
+	if db == nil || deps == nil {
+		return db
+	}
+	// Set 会返回一个新的 *gorm.DB（session），你可以把它当作全局 gdb 使用
+	return db.Set(depsKey, deps)
+}
+
+func FromEnv(tx *gorm.DB) *HostEnv {
+	if tx == nil {
+		return nil
+	}
+	if v, ok := tx.Get(depsKey); ok {
+		if d, ok := v.(*HostEnv); ok {
+			return d
+		}
+	}
+	return nil
+}

@@ -94,6 +94,12 @@ func (m *ModbusInstance) Init(parent context.Context, env *pluginapi.HostEnv) er
 	}
 	m.client = client
 
+	// by default, 16-bit integers are decoded as big-endian and 32/64-bit values as
+	// big-endian with the high word first.
+	// change the byte/word ordering of subsequent requests to little endian, with
+	// the low word first (note that the second argument only affects 32/64-bit values)
+	client.SetEncoding(modbus.LITTLE_ENDIAN, modbus.LOW_WORD_FIRST)
+
 	// 设置 UnitID（如果配置了）
 	// Set unit ID (if configured).
 	if m.cfg.UnitID != 0 {

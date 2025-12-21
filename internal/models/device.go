@@ -51,10 +51,10 @@ func (DevicePoint) TableName() string {
 }
 
 type Device struct {
-	ChannelID       string
-	Channel         Channel `gorm:"references:UUID"`
-	ArrayID         string
-	Array           Array         `gorm:"references:UUID"`
+	ChannelID string
+	Channel   Channel `gorm:"references:UUID"`
+	//ArrayID         string
+	//Array           Array         `gorm:"references:UUID"`
 	DevicePoint     string        // 设备点位
 	UUID            string        `gorm:"primaryKey;column:uuid;size:36;uniqueIndex;not null" json:"uuid"`
 	Name            string        `gorm:"column:name;size:150;uniqueIndex;not null" json:"name"`

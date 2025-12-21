@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 
 	"github.com/fluxionwatt/gridbeat/core"
@@ -25,46 +24,11 @@ import (
 	_ "github.com/fluxionwatt/gridbeat/core/plugin/stream"
 )
 
-func createPidFile(path string) error {
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
-	if err != nil {
-		return err
-	}
-	_, err = f.WriteString(strconv.Itoa(os.Getpid()))
-	f.Close()
-	return err
-}
-
-func removePidFile(path string) {
-	_ = os.Remove(path)
-}
-
 func init() {
 	rootCmd.AddCommand(serverCmd)
 
 	flags := serverCmd.Flags()
 	flags.BoolVar(&core.Gconfig.DisableAuth, "disable_auth", false, "disable http api auth")
-}
-
-func handleSignals(logger *pluginapi.ReopenLogger) {
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, syscall.SIGUSR1, syscall.SIGTERM, syscall.SIGINT)
-
-	for sig := range ch {
-		switch sig {
-		case syscall.SIGUSR1:
-			log.Println("received SIGUSR1, reopening log file")
-			if err := logger.Reopen(); err != nil {
-				log.Printf("reopen log failed: %v\n", err)
-			}
-		case syscall.SIGTERM, syscall.SIGINT:
-			log.Println("exiting")
-			removePidFile(core.Gconfig.PID)
-
-			//logger.Close()
-			os.Exit(0)
-		}
-	}
 }
 
 var serverCmd = &cobra.Command{
@@ -84,21 +48,15 @@ var serverCmd = &cobra.Command{
 
 		if logger, err = pluginapi.NewReopenLogger(core.Gconfig.LogPath, core.Gconfig.Debug); err != nil {
 			cobra.CheckErr(err)
+			return
 		}
 
 		fmt.Printf("use log path: %s\n", core.Gconfig.LogPath)
 
-		// 1. 加载配置 / Load configuration.
-		//cfg, err := loadConfig("config.yaml")
-		//if err != nil {
-		//	log.Fatalf("load config: %v", err)
-		//}
-
-		// 2. 内置插件已经通过 init() 完成工厂注册
-		//    Built-in factories are already registered via init() above.
-
-		// 3. 可选：从目录加载 .so 插件工厂
-		//    Optional: load .so plugin factories from a directory.
+		// 从目录加载 .so 插件工厂
+		// Optional: load .so plugin factories from a directory.
+		// 内置插件已经通过 init() 完成工厂注册
+		// Built-in factories are already registered via init() above.
 		loadSoFactories(core.Gconfig.Plugins)
 
 		for _, f := range pluginapi.AllFactories() {
@@ -179,7 +137,7 @@ var serverCmd = &cobra.Command{
 		var server *mqtt.Server
 		if server, err = core.ServerMQTT(logger.MqttLogger); err != nil {
 			logger.MqttLogger.Error(err)
-			cobra.CheckErr(fmt.Errorf("server mqtt %w", err))
+			cobra.CheckErr(fmt.Errorf("server  d mqtt %w", err))
 			return
 		}
 
@@ -200,7 +158,7 @@ var serverCmd = &cobra.Command{
 					}
 				case syscall.SIGTERM, syscall.SIGINT:
 					log.Println("exiting")
-					removePidFile(core.Gconfig.PID)
+					core.RemovePidFile(core.Gconfig.PID)
 
 					rootCancel()
 					logger.Close()
@@ -240,10 +198,9 @@ var serverCmd = &cobra.Command{
 			}
 		*/
 
-		if err := createPidFile(core.Gconfig.PID); err != nil {
+		if err := core.CreatePidFile(core.Gconfig.PID); err != nil {
 			cobra.CheckErr(fmt.Errorf("already running? %w", err))
 		}
-		defer removePidFile(core.Gconfig.PID)
 
 		if err := server.Serve(); err != nil {
 			logger.MqttLogger.Error(err)
@@ -257,8 +214,8 @@ var serverCmd = &cobra.Command{
 		}
 
 		var items []models.Serial
-		if err := gdb.Order("name asc").Find(&items).Error; err != nil {
-			cobra.CheckErr(fmt.Errorf("server mqtt start %w", err))
+		if err := gdb.Order("device asc").Find(&items).Error; err != nil {
+			cobra.CheckErr(fmt.Errorf("get all serial %w", err))
 			return
 		}
 		//for _, serial := range items {

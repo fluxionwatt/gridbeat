@@ -10,7 +10,6 @@ import (
 
 	"github.com/fluxionwatt/gridbeat/internal/config"
 	"github.com/fluxionwatt/gridbeat/internal/models"
-	"github.com/fluxionwatt/gridbeat/utils/modbus"
 	"github.com/glebarez/sqlite"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -141,16 +140,7 @@ func SyncSerials(gdb *gorm.DB, devices []string) error {
 				}
 			} else {
 				// Insert new row / 新增记录
-				row := models.Serial{
-					Device:        dev,
-					StopBits:      2,
-					Speed:         19200,
-					DataBits:      8,
-					Parity:        modbus.PARITY_NONE,
-					Disable:       false,
-					OnnectTimeout: 300 * time.Millisecond,
-				}
-				if err := tx.Create(&row).Error; err != nil {
+				if err := tx.Create(models.GetSerialDefaultRow(dev)).Error; err != nil {
 					return fmt.Errorf("create serial failed: %w", err)
 				}
 			}
