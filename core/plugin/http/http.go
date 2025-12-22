@@ -13,12 +13,11 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/static"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 // HTTPServerConfig：单个 httpserver 实例的配置
 // HTTPServerConfig: configuration for a single httpserver instance.
-type HTTPServerConfig struct {
+type InstanceConfig struct {
 	// 监听地址，例如 ":8080" 或 "0.0.0.0:9000"
 	// Listen address, e.g. ":8080" or "0.0.0.0:9000".
 	Address string `mapstructure:"address"`
@@ -37,7 +36,7 @@ type HTTPServerInstance struct {
 
 	id  string
 	typ string
-	cfg HTTPServerConfig
+	cfg InstanceConfig
 
 	logger logrus.FieldLogger // 实例级 logger / per-instance logger
 	app    *fiber.App
@@ -125,9 +124,10 @@ func (s *HTTPServerInstance) Init(parent context.Context, env *pluginapi.HostEnv
 	s.wg.Add(1)
 	go func(addr string) {
 		defer s.wg.Done()
-		s.logger.Infof("starting Fiber v3 HTTP server on %s (basePath=%s)", addr, base)
 
 		if s.cfg.HTTPS {
+			s.logger.Infof("starting fiber HTTPS server on %s (basePath=%s)", addr, base)
+
 			cert, _ := tls.X509KeyPair([]byte(certPEM), []byte(keyPEM))
 
 			tlsConf := &tls.Config{
@@ -135,7 +135,7 @@ func (s *HTTPServerInstance) Init(parent context.Context, env *pluginapi.HostEnv
 				MinVersion:   tls.VersionTLS12,
 			}
 
-			ln, err := tls.Listen("tcp", ":"+viper.GetString("https.port"), tlsConf)
+			ln, err := tls.Listen("tcp", addr, tlsConf)
 			if err != nil {
 				s.logger.Fatal("tls listen failed: ", err)
 			}
@@ -147,6 +147,8 @@ func (s *HTTPServerInstance) Init(parent context.Context, env *pluginapi.HostEnv
 				s.logger.Fatal(err)
 			}
 		} else {
+			s.logger.Infof("starting fiber v3 HTTP server on %s (basePath=%s)", addr, base)
+
 			// Listen 会阻塞直到 Shutdown 被调用或发生错误
 			// Listen blocks until Shutdown is called or an error occurs.
 			if err := s.app.Listen(addr, fiber.ListenConfig{
@@ -160,7 +162,7 @@ func (s *HTTPServerInstance) Init(parent context.Context, env *pluginapi.HostEnv
 			s.logger.Infof("Fiber HTTP server stopped (addr=%s)", addr)
 
 			/*
-							lnHTTP, err := net.Listen("tcp", ":"+viper.GetString("http.port"))
+				lnHTTP, err := net.Listen("tcp", ":"+viper.GetString("http.port"))
 				if err != nil {
 					errorLogger.Fatal("http listen failed: ", err)
 				}
@@ -246,7 +248,7 @@ func (s *HTTPServerInstance) UpdateConfig(raw pluginapi.InstanceConfig) error {
 	newCfg := s.cfg
 
 	if raw != nil {
-		if v, ok := raw.(HTTPServerConfig); ok {
+		if v, ok := raw.(InstanceConfig); ok {
 			newCfg = v
 		}
 	}
@@ -316,9 +318,9 @@ func (f *HTTPServerFactory) New(id string, raw pluginapi.InstanceConfig) (plugin
 		return nil, fmt.Errorf("httpserver: empty instance id")
 	}
 
-	var cfg HTTPServerConfig
+	var cfg InstanceConfig
 	if raw != nil {
-		if v, ok := raw.(HTTPServerConfig); ok {
+		if v, ok := raw.(InstanceConfig); ok {
 			cfg = v
 		}
 	}

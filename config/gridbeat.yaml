@@ -1,4 +1,4 @@
-debug: true
+debug: false
 log-path: ./
 data-path: ./
 extra-path: ./
@@ -14,15 +14,13 @@ https:
     port: 8443
 serial:
     - /dev/ttys001
-    - /dev/ttys002
-    - /dev/ttys003
-    - /dev/ttys004
+
 
 simulator:
     max_slave_id: 1024
     modbus-rtu:
     -
-        name: /dev/ttys022
+        name: /dev/ttys002
         rate: 19200
         datarate: 8
         stopbits: 2

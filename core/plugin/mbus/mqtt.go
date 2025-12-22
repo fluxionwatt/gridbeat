@@ -1,4 +1,4 @@
-package modbusrtu
+package mbus
 
 import (
 	"bytes"

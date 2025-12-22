@@ -17,10 +17,11 @@ import (
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	_ "github.com/fluxionwatt/gridbeat/core/plugin/goose"
-	_ "github.com/fluxionwatt/gridbeat/core/plugin/http"
-	_ "github.com/fluxionwatt/gridbeat/core/plugin/modbusrtu"
+	http "github.com/fluxionwatt/gridbeat/core/plugin/http"
+	mbus "github.com/fluxionwatt/gridbeat/core/plugin/mbus"
 	_ "github.com/fluxionwatt/gridbeat/core/plugin/stream"
 )
 
@@ -208,19 +209,41 @@ var serverCmd = &cobra.Command{
 			return
 		}
 
-		mgr.Create("http", uuid.New().String(), nil)
+		mgr.Create("http", uuid.New().String(), http.InstanceConfig{
+			HTTPS:    false,
+			BasePath: "/",
+			Address:  ":" + viper.GetString("http.port"),
+		})
 		if !core.Gconfig.HTTPS.Disable {
-			mgr.Create("http", uuid.New().String(), nil)
+			mgr.Create("http", uuid.New().String(), http.InstanceConfig{
+				HTTPS:    true,
+				BasePath: "/",
+				Address:  ":" + viper.GetString("https.port"),
+			})
 		}
 
-		var items []models.Serial
-		if err := gdb.Order("device asc").Find(&items).Error; err != nil {
-			cobra.CheckErr(fmt.Errorf("get all serial %w", err))
+		var items []models.Channel
+		if err := gdb.Order("uuid asc").Find(&items).Error; err != nil {
+			cobra.CheckErr(fmt.Errorf("get all channel %w", err))
 			return
 		}
-		//for _, serial := range items {
-		//	mgr.Create("modbusrtu", uuid.New().String(), nil)
-		//}
+		for _, channel := range items {
+			conf := mbus.InstanceConfig{
+				URL:       "tcp://" + channel.TCPIPAddr + ":" + fmt.Sprintf("%d", channel.TCPPort),
+				Model:     channel,
+				UnitID:    1,
+				Quantity:  1,
+				StartAddr: 100,
+			}
+
+			if channel.PhysicalLink == "serial" {
+				conf.URL = "rtu://" + channel.Device
+			}
+
+			if _, err = mgr.Create("mbus", channel.UUID, conf); err != nil {
+				cobra.CheckErr(fmt.Errorf("mgr create instance %w", err))
+			}
+		}
 
 		select {}
 	},
