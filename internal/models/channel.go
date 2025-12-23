@@ -9,11 +9,11 @@ import (
 )
 
 type ChannelStatus struct {
-	Working         bool          `gorm:"-" json:"working"`       // 工作状态
-	Linking         bool          `gorm:"-" json:"linking"`       // 连接状态
-	CurrentDelay    time.Duration `gorm:"-" json:"current_delay"` // 当前采集延迟
-	BytesSent       uint64        `gorm:"-" json:"bytes_sent"`
-	BytesReceived   uint64        `gorm:"-" json:"bytes_received"`
+	Working         bool          `gorm:"-" json:"working"`           // 工作状态
+	Linking         bool          `gorm:"-" json:"linking"`           // 连接状态
+	CurrentDelay    time.Duration `gorm:"-" json:"current_delay"`     // 当前采集延迟
+	BytesSent       uint64        `gorm:"-" json:"bytes_sent"`        // bytes sent
+	BytesReceived   uint64        `gorm:"-" json:"bytes_received"`    // bytes received
 	PointsToalRead  uint64        `gorm:"-" json:"points_total_read"` // 点位读取数总计
 	PointsErrorRead uint64        `gorm:"-" json:"points_error_read"` // 点位读取错误数总计
 }
@@ -54,7 +54,8 @@ type Channel struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
-	Status ChannelStatus `gorm:"-" json:"status"`
+	Status          ChannelStatus `gorm:"-" json:"status"`
+	SimulatorStatus ChannelStatus `gorm:"-" json:"simulator_status"`
 }
 
 // TableName 用来显式指定表名（可选）

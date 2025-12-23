@@ -1,8 +1,13 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type Site struct {
+	gorm.Model
 	UUID        string    `gorm:"primaryKey;column:uuid;size:36;uniqueIndex;not null" json:"uuid"`
 	Name        string    `gorm:"column:name;size:1024;uniqueIndex;not null" json:"name"`
 	Power       uint64    // 电站额定充放电功率，单位 瓦特

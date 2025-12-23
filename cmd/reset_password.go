@@ -52,9 +52,6 @@ func resetPasswordCmd() *cobra.Command {
 				return err
 			}
 
-			fmt.Println("x")
-			fmt.Println(root.ID)
-
 			hash, err := util.HashPassword("admin")
 			if err != nil {
 				return err

@@ -29,8 +29,9 @@ type ModbusInstance struct {
 
 	cfg InstanceConfig
 
-	logger logrus.FieldLogger // 实例级 logger / per-instance logger
-	client *modbus.ModbusRtuServer
+	logger  logrus.FieldLogger // 实例级 logger / per-instance logger
+	server1 *modbus.ModbusRtuServer
+	server2 *modbus.ModbusServer
 
 	parentCtx context.Context
 	ctx       context.Context
@@ -131,7 +132,7 @@ func (m *ModbusInstance) Init(parent context.Context, env *pluginapi.HostEnv) er
 	l, _, _ := ToStdLogger(m.logger, logrus.InfoLevel, "", 0)
 
 	// for an RTU (serial) device/bus
-	client, err := modbus.NewRTUServer(&modbus.ModbusRtuServerConfig{
+	server1, err := modbus.NewRTUServer(&modbus.ModbusRtuServerConfig{
 		TTYPath:       m.cfg.Model.Device2,
 		BaudRate:      m.cfg.Model.Speed,
 		ModbusAddress: 0,
@@ -142,9 +143,20 @@ func (m *ModbusInstance) Init(parent context.Context, env *pluginapi.HostEnv) er
 	}, m)
 
 	if err != nil {
-		return fmt.Errorf("modbus[%s]: create client failed: %w", m.id, err)
+		return fmt.Errorf("modbus[%s]: create RTU server failed: %w", m.id, err)
 	}
-	m.client = client
+	m.server1 = server1
+
+	server2, err := modbus.NewServer(&modbus.ServerConfiguration{
+		URL:     m.cfg.URL,
+		Timeout: m.cfg.Model.OnnectTimeout,
+		Logger:  l,
+	}, m)
+
+	if err != nil {
+		return fmt.Errorf("modbus[%s]: create TCP server failed: %w", m.id, err)
+	}
+	m.server2 = server2
 
 	// 启动一个协程：负责自动 Open/Close + 周期读寄存器
 	// Start one goroutine: handles Open/Close + periodic register reads.
@@ -180,7 +192,7 @@ func (m *ModbusInstance) runPoller(cfg InstanceConfig) {
 		cfg.Model.Status.Linking = false
 
 		// 尝试建立连接 / try to open connection.
-		if err := m.client.Start(); err != nil {
+		if err := m.server1.Start(); err != nil {
 			m.logger.Errorf("modbus simulator open %s failed: %v", m.cfg.URL, err)
 			if !sleepWithContext(m.ctx, 2*time.Second) {
 				m.logger.Infof("modbus simulator poller exit during reconnect wait")
@@ -202,7 +214,7 @@ func (m *ModbusInstance) runPoller(cfg InstanceConfig) {
 				// 上层取消：关闭连接并退出
 				// Parent canceled: close connection and exit.
 				ticker.Stop()
-				_ = m.client.Stop()
+				_ = m.server1.Stop()
 				m.logger.Infof("modbus simulator poller exit on ctx done")
 				return
 			case <-ticker.C:
@@ -240,9 +252,9 @@ func (m *ModbusInstance) Close() error {
 
 	// 关闭底层 client（如果轮询协程已经关闭，这里 Close() 基本是幂等的）
 	// Close underlying client (poller already closed it, so this is mostly idempotent).
-	if m.client != nil {
-		_ = m.client.Stop()
-		m.client = nil
+	if m.server1 != nil {
+		_ = m.server1.Stop()
+		m.server1 = nil
 	}
 
 	m.ctx = nil
