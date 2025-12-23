@@ -7,21 +7,22 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/fluxionwatt/gridbeat/core"
 	"github.com/fluxionwatt/gridbeat/internal/auth"
 	"github.com/fluxionwatt/gridbeat/internal/db"
 	"github.com/fluxionwatt/gridbeat/internal/models"
 	"github.com/fluxionwatt/gridbeat/pluginapi"
-	"github.com/google/uuid"
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	http "github.com/fluxionwatt/gridbeat/core/http"
+	"github.com/fluxionwatt/gridbeat/core/plugin/cmbus"
 	_ "github.com/fluxionwatt/gridbeat/core/plugin/goose"
-	http "github.com/fluxionwatt/gridbeat/core/plugin/http"
-	mbus "github.com/fluxionwatt/gridbeat/core/plugin/mbus"
+	"github.com/fluxionwatt/gridbeat/core/plugin/mbus"
 	_ "github.com/fluxionwatt/gridbeat/core/plugin/stream"
 )
 
@@ -30,6 +31,7 @@ func init() {
 
 	flags := serverCmd.Flags()
 	flags.BoolVar(&core.Gconfig.DisableAuth, "disable_auth", false, "disable http api auth")
+	flags.BoolVar(&core.Gconfig.Simulator, "simulator", false, "enable simulator client")
 }
 
 var serverCmd = &cobra.Command{
@@ -162,8 +164,9 @@ var serverCmd = &cobra.Command{
 					core.RemovePidFile(core.Gconfig.PID)
 
 					rootCancel()
-					logger.Close()
+					//logger.Close()
 
+					time.Sleep(10 * time.Second)
 					os.Exit(0)
 				}
 			}
@@ -182,45 +185,32 @@ var serverCmd = &cobra.Command{
 		mgr := core.NewInstanceManager(rootCtx, env)
 		defer mgr.DestroyAll() // 进程退出时清理所有实例 / cleanup on shutdown
 
-		/*
-			for typ, instCfgs := range cfg.Plugins {
-				for _, ic := range instCfgs {
-					if ic.ID == "" {
-						log.Printf("skip %s instance with empty id", typ)
-						continue
-					}
-					log.Printf("create instance type=%s id=%s", typ, ic.ID)
-					_, err := mgr.Create(typ, ic.ID, ic.Config)
-					if err != nil {
-						log.Printf("  create failed: %v", err)
-						continue
-					}
-				}
-			}
-		*/
+		cycle := &core.Cycle{
+			Logger:       logrus.NewEntry(logger.RunLogger),
+			DB:           gdb,
+			MQTT:         server,
+			Conf:         cfg,
+			Mgr:          mgr,
+			AccessLogger: logger.AccessLogger,
+		}
 
 		if err := core.CreatePidFile(core.Gconfig.PID); err != nil {
 			cobra.CheckErr(fmt.Errorf("already running? %w", err))
 		}
 
-		if err := server.Serve(); err != nil {
+		if err := cycle.MQTT.Serve(); err != nil {
 			logger.MqttLogger.Error(err)
 			cobra.CheckErr(fmt.Errorf("server mqtt start %w", err))
 			return
 		}
 
-		mgr.Create("http", uuid.New().String(), http.InstanceConfig{
-			HTTPS:    false,
-			BasePath: "/",
-			Address:  ":" + viper.GetString("http.port"),
+		handler := http.New(http.Config{
+			HTTPSDisable: core.Gconfig.HTTPS.Disable,
+			HTTPAddress:  ":" + viper.GetString("http.port"),
+			HTTPSAddress: ":" + viper.GetString("https.port"),
 		})
-		if !core.Gconfig.HTTPS.Disable {
-			mgr.Create("http", uuid.New().String(), http.InstanceConfig{
-				HTTPS:    true,
-				BasePath: "/",
-				Address:  ":" + viper.GetString("https.port"),
-			})
-		}
+
+		handler.Init(rootCtx, cycle)
 
 		var items []models.Channel
 		if err := gdb.Order("uuid asc").Find(&items).Error; err != nil {
@@ -228,19 +218,21 @@ var serverCmd = &cobra.Command{
 			return
 		}
 		for _, channel := range items {
-			conf := mbus.InstanceConfig{
-				URL:       "tcp://" + channel.TCPIPAddr + ":" + fmt.Sprintf("%d", channel.TCPPort),
+
+			if core.Gconfig.Simulator {
+				if _, err = mgr.Create("cmbus", channel.UUID, cmbus.InstanceConfig{
+					Model: channel,
+				}); err != nil {
+					cobra.CheckErr(fmt.Errorf("mgr create instance %w", err))
+				}
+			}
+
+			if _, err = mgr.Create("mbus", channel.UUID, mbus.InstanceConfig{
 				Model:     channel,
 				UnitID:    1,
 				Quantity:  1,
 				StartAddr: 100,
-			}
-
-			if channel.PhysicalLink == "serial" {
-				conf.URL = "rtu://" + channel.Device
-			}
-
-			if _, err = mgr.Create("mbus", channel.UUID, conf); err != nil {
+			}); err != nil {
 				cobra.CheckErr(fmt.Errorf("mgr create instance %w", err))
 			}
 		}

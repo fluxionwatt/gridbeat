@@ -13,38 +13,9 @@ https:
     disable: false
     port: 8443
 serial:
-    - /dev/ttys001
-
-
-simulator:
-    max_slave_id: 1024
-    modbus-rtu:
-    -
-        name: /dev/ttys002
-        rate: 19200
-        datarate: 8
-        stopbits: 2
-        parity: 0
-    devices:
-        -
-            name: company1
-            sn: ss
-            device_type: ESS
-            device_plugin: Huawei_ESS2000
-            software_version: xxx
-            model: xxx
-            disable: false
-            url: tcp://127.0.0.1:5001
-        -
-            name: company2
-            sn: ss
-            device_type: ESS
-            device_plugin: Huawei_ESS2000
-            software_version: xxx
-            model: xxx
-            disable: false
-            url: tcp://127.0.0.1:5002
-
+    - 
+      device: /dev/ttys004
+      device2: /dev/ttys007
 auth:
   jwt:
     # IMPORTANT: change this in production

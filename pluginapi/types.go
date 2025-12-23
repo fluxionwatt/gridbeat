@@ -33,6 +33,8 @@ type Instance interface {
 	// UpdateConfig 用于应用新的配置，实现热更新
 	// UpdateConfig applies a new configuration (for hot-reload).
 	UpdateConfig(cfg InstanceConfig) error
+
+	Get() any
 }
 
 // Factory 表示某个插件类型（驱动），负责创建多个实例

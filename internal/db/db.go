@@ -100,11 +100,14 @@ func SeedDefaultSettings(gdb *gorm.DB) error {
 //   - update UpdatedAt if exists / 存在则更新时间（也可更新其他字段）
 //
 // 2) Devices NOT present in list: delete the record / 不在列表中的设备删除记录
-func SyncSerials(gdb *gorm.DB, devices []string) error {
+func SyncSerials(gdb *gorm.DB, devices []config.Serial) error {
 	// Normalize, trim, deduplicate / 规范化、去空格、去重
 	set := make(map[string]struct{}, len(devices))
 	normalized := make([]string, 0, len(devices))
-	for _, d := range devices {
+	normalized2 := make([]string, 0, len(devices))
+	for _, s := range devices {
+		d := s.Device
+
 		d = strings.TrimSpace(d)
 		if d == "" {
 			continue
@@ -114,6 +117,7 @@ func SyncSerials(gdb *gorm.DB, devices []string) error {
 		}
 		set[d] = struct{}{}
 		normalized = append(normalized, d)
+		normalized2 = append(normalized2, s.Device2)
 	}
 
 	now := time.Now()
@@ -122,7 +126,7 @@ func SyncSerials(gdb *gorm.DB, devices []string) error {
 		// Load existing records / 读取现有记录
 		var existing []models.Channel
 		if err := tx.Find(&existing).Error; err != nil {
-			return fmt.Errorf("query serials failed / 查询串口表失败: %w", err)
+			return fmt.Errorf("query serials failed: %w", err)
 		}
 		existingSet := make(map[string]models.Channel, len(existing))
 		for _, s := range existing {
@@ -130,17 +134,17 @@ func SyncSerials(gdb *gorm.DB, devices []string) error {
 		}
 
 		// Upsert for present devices / 对存在的设备进行 upsert
-		for _, dev := range normalized {
+		for i, dev := range normalized {
 			if s, ok := existingSet[dev]; ok {
 				// Update updated_at to reflect current boot config / 更新时间反映当前启动配置
 				if err := tx.Model(&models.Channel{}).
 					Where("id = ?", s.ID).
 					Updates(map[string]any{"updated_at": now}).Error; err != nil {
-					return fmt.Errorf("update serial failed / 更新串口记录失败: %w", err)
+					return fmt.Errorf("update serial failed: %w", err)
 				}
 			} else {
 				// Insert new row / 新增记录
-				if err := tx.Create(models.GetDefaultSerialRow(dev)).Error; err != nil {
+				if err := tx.Create(models.GetDefaultSerialRow(dev, normalized2[i])).Error; err != nil {
 					return fmt.Errorf("create serial failed: %w", err)
 				}
 			}

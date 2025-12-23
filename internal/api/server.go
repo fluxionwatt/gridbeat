@@ -3,35 +3,35 @@ package api
 import (
 	"time"
 
+	"github.com/fluxionwatt/gridbeat/core"
 	_ "github.com/fluxionwatt/gridbeat/docs"
 	"github.com/fluxionwatt/gridbeat/internal/auth"
 	"github.com/fluxionwatt/gridbeat/internal/config"
 	"github.com/fluxionwatt/gridbeat/internal/models"
 	"github.com/fluxionwatt/gridbeat/internal/response"
-	swaggo "github.com/gofiber/contrib/v3/swaggo"
 	"github.com/gofiber/fiber/v3"
+	mqtt "github.com/mochi-mqtt/server/v2"
 	"gorm.io/gorm"
 )
 
 // Server holds dependencies for HTTP handlers.
 // Server 保存 HTTP handler 依赖项。
 type Server struct {
-	DB  *gorm.DB
-	Cfg *config.Config
+	DB   *gorm.DB
+	Cfg  *config.Config
+	MQTT *mqtt.Server
+	Mgr  *core.InstanceManager
 }
 
 // New creates server instance.
 // New 创建 Server 实例。
-func New(db *gorm.DB, cfg *config.Config) *Server {
-	return &Server{DB: db, Cfg: cfg}
-}
+//func New(db *gorm.DB, cfg *config.Config) *Server {
+//	return &Server{DB: db, Cfg: cfg}
+//}
 
 // App builds Fiber app with routes.
 // App 构建包含路由的 Fiber 应用。
-func (s *Server) App(app *fiber.App) *fiber.App {
-
-	// Swagger UI: http://localhost:8080/swagger/index.html
-	app.Get("/swagger/*", swaggo.HandlerDefault)
+func (s *Server) Route(app *fiber.App) *fiber.App {
 
 	v1 := app.Group("/api/v1")
 
@@ -84,6 +84,9 @@ func (s *Server) App(app *fiber.App) *fiber.App {
 
 	serial := v1.Group("/serial", auth.AuthMiddleware(s.DB, s.Cfg.Auth.JWT.Secret))
 	registerSerialRoutes(serial, s.DB)
+
+	channels := v1.Group("/channels", auth.AuthMiddleware(s.DB, s.Cfg.Auth.JWT.Secret))
+	channels.Get("/", s.ListOnlineChanel)
 
 	// settings
 	settings := v1.Group("/settings", auth.AuthMiddleware(s.DB, s.Cfg.Auth.JWT.Secret))

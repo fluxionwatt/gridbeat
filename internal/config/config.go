@@ -9,11 +9,17 @@ import (
 	"github.com/spf13/viper"
 )
 
+type Serial struct {
+	Device  string `mapstructure:"device"`
+	Device2 string `mapstructure:"device2"`
+}
+
 // Config holds application configuration.
 // Config 保存应用配置。
 type Config struct {
 	Debug       bool   `mapstructure:"debug"`
 	DisableAuth bool   `mapstructure:"disable_auth"`
+	Simulator   bool   `mapstructure:"simulator"`
 	Plugins     string `mapstructure:"plugins"`
 	LogPath     string `mapstructure:"log-path"`
 	DataPath    string `mapstructure:"data-path"`
@@ -32,29 +38,8 @@ type Config struct {
 		Host string `mapstructure:"host"`
 		Port uint16 `mapstructure:"port"`
 	} `mapstructure:"mqtt"`
-	Serial    []string `mapstructure:"serial"`
-	Simulator struct {
-		MaxSlaveId uint16 `mapstructure:"max_slave_id"`
-		ModbusRTU  []struct {
-			Name     string `mapstructure:"name"`
-			Rate     uint   `mapstructure:"rate"`
-			DataRate uint   `mapstructure:"datarate"`
-			StopBits uint   `mapstructure:"stopbits"`
-			Parity   uint   `mapstructure:"parity"`
-		} `mapstructure:"modbus-rtu"`
-		Devices []struct {
-			Name            string `json:"name" mapstructure:"name"`
-			SN              string `json:"sn" mapstructure:"sn"`
-			DeviceType      string `son:"device_type" mapstructure:"device_type"`
-			DevicePlugin    string `json:"device_plugin" mapstructure:"device_plugin"`
-			SoftwareVersion string `son:"software_version" mapstructure:"software_version"`
-			Model           string `json:"model" mapstructure:"model"`
-			Disable         bool   `json:"disable" mapstructure:"disable"`
-			URL             string `json:"url" mapstructure:"url"`
-		} `mapstructure:"devices"`
-	}
-
-	Auth struct {
+	Serial []Serial `mapstructure:"serial"`
+	Auth   struct {
 		JWT struct {
 			Secret string `mapstructure:"secret"`
 			Issuer string `mapstructure:"issuer"`

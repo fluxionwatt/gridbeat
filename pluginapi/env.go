@@ -20,8 +20,7 @@ type HostEnv struct {
 	Logger *ReopenLogger
 
 	PluginLog logrus.FieldLogger
-
-	MQTT *mqtt.Server
+	MQTT      *mqtt.Server
 }
 
 const depsKey = "__global_deps__"

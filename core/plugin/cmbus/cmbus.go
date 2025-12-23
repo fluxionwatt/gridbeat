@@ -1,15 +1,25 @@
-package mbus
+package cmbus
 
 import (
 	"context"
 	"fmt"
+	"io"
+	stdlog "log"
 	"sync"
 	"time"
 
+	"github.com/fluxionwatt/gridbeat/internal/models"
 	"github.com/fluxionwatt/gridbeat/pluginapi"
 	"github.com/fluxionwatt/gridbeat/utils/modbus"
 	"github.com/sirupsen/logrus"
 )
+
+// ModbusConfig：单个 modbus 实例的配置
+// ModbusConfig: configuration for a single modbus instance.
+type InstanceConfig struct {
+	Model models.Channel
+	URL   string `mapstructure:"url"`
+}
 
 // ModbusInstance：具体插件实例，实现 pluginapi.Instance
 // ModbusInstance: concrete plugin instance implementing pluginapi.Instance.
@@ -20,7 +30,7 @@ type ModbusInstance struct {
 	cfg InstanceConfig
 
 	logger logrus.FieldLogger // 实例级 logger / per-instance logger
-	client *modbus.ModbusClient
+	client *modbus.ModbusRtuServer
 
 	parentCtx context.Context
 	ctx       context.Context
@@ -31,10 +41,50 @@ type ModbusInstance struct {
 
 	mu   sync.Mutex
 	init bool
+
+	// this lock is used to avoid concurrency issues between goroutines, as
+	// handler methods are called from different goroutines
+	// (1 goroutine per client)
+	lock sync.RWMutex
+
+	// simple uptime counter, incremented in the main() above and exposed
+	// as a 32-bit input register (2 consecutive 16-bit modbus registers).
+	uptime uint32
+
+	// these are here to hold client-provided (written) values, for both coils and
+	// holding registers
+	coils [100]bool
+
+	inputReg   [65636]uint16
+	holdingReg [65636]uint16
+
+	// unix timestamp register, incremented in the main() function above and exposed
+	// as a 32-bit holding register (2 consecutive 16-bit modbus registers).
+	clock uint32
 }
 
 func (m *ModbusInstance) ID() string   { return m.id }
 func (m *ModbusInstance) Type() string { return m.typ }
+
+// ToStdLogger converts logrus.FieldLogger into *log.Logger in one call.
+// It uses logrus's built-in WriterLevel (so formatter/hooks apply).
+// IMPORTANT: call the returned closer.Close() when you no longer need the logger.
+func ToStdLogger(l logrus.FieldLogger, level logrus.Level, prefix string, flags int) (*stdlog.Logger, io.Closer, error) {
+	if l == nil {
+		return nil, nil, fmt.Errorf("nil FieldLogger")
+	}
+
+	type writerLeveler interface {
+		WriterLevel(level logrus.Level) *io.PipeWriter
+	}
+	wl, ok := any(l).(writerLeveler)
+	if !ok {
+		return nil, nil, fmt.Errorf("FieldLogger %T does not support WriterLevel (need *logrus.Logger or *logrus.Entry)", l)
+	}
+
+	pw := wl.WriterLevel(level) // goes through formatter + hooks
+	return stdlog.New(pw, prefix, flags), pw, nil
+}
 
 // Init：用 parent ctx + HostEnv 初始化实例并启动轮询协程
 // Init: initialize instance with parent ctx + HostEnv and start poller goroutine.
@@ -57,81 +107,71 @@ func (m *ModbusInstance) Init(parent context.Context, env *pluginapi.HostEnv) er
 	// 默认配置 / default config
 	m.cfg.URL = "tcp://" + m.cfg.Model.TCPIPAddr + ":" + fmt.Sprintf("%d", m.cfg.Model.TCPPort)
 	if m.cfg.Model.PhysicalLink == "serial" {
-		m.cfg.URL = "rtu://" + m.cfg.Model.Device
-	}
-
-	if m.cfg.Quantity == 0 {
-		m.cfg.Quantity = 10
-	}
-	if m.cfg.RegType == "" {
-		m.cfg.RegType = "holding"
+		m.cfg.URL = "rtu://" + m.cfg.Model.Device2
 	}
 
 	// logger：优先用 HostEnv.Logger，否则新建一个
 	// logger: prefer HostEnv.Logger, otherwise create a new one.
 	if env != nil && env.Logger != nil {
-		m.logger = env.PluginLog.WithField("plugin", "mbus").WithField("instance", m.id)
+		m.logger = env.PluginLog.WithField("plugin", "cmbus").WithField("instance", m.id)
 	}
 	// 实例级 ctx / instance-level ctx
 	m.ctx, m.cancel = context.WithCancel(parent)
 
-	// 创建 Modbus client（每次 Init 都基于当前 cfg 创建一个新 client）
-	// Create Modbus client based on current cfg.
-	client, err := modbus.NewClient(&modbus.ClientConfiguration{
-		URL:      m.cfg.URL,
-		Timeout:  m.cfg.Model.OnnectTimeout,
-		Speed:    m.cfg.Model.Speed,
-		DataBits: m.cfg.Model.DataBits,
-		Parity:   m.cfg.Model.Parity,
-		StopBits: m.cfg.Model.StopBits,
-	})
+	// 创建 Modbus server Init 都基于当前 cfg 创建一个新 server
+	// Create Modbus server based on current cfg.
+
+	var parity string
+	if m.cfg.Model.Parity == 0 {
+		parity = "N"
+	} else {
+		parity = "Y"
+	}
+
+	l, _, _ := ToStdLogger(m.logger, logrus.InfoLevel, "", 0)
+
+	// for an RTU (serial) device/bus
+	client, err := modbus.NewRTUServer(&modbus.ModbusRtuServerConfig{
+		TTYPath:       m.cfg.Model.Device2,
+		BaudRate:      m.cfg.Model.Speed,
+		ModbusAddress: 0,
+		DataBits:      m.cfg.Model.DataBits,
+		StopBits:      m.cfg.Model.StopBits,
+		Parity:        parity,
+		Logger:        l,
+	}, m)
+
 	if err != nil {
 		return fmt.Errorf("modbus[%s]: create client failed: %w", m.id, err)
 	}
 	m.client = client
 
-	// by default, 16-bit integers are decoded as big-endian and 32/64-bit values as
-	// big-endian with the high word first.
-	// change the byte/word ordering of subsequent requests to little endian, with
-	// the low word first (note that the second argument only affects 32/64-bit values)
-	client.SetEncoding(modbus.Endianness(m.cfg.Model.Endianness), modbus.WordOrder(m.cfg.Model.Endianness))
-
-	// 设置 UnitID（如果配置了）
-	// Set unit ID (if configured).
-	if m.cfg.UnitID != 0 {
-		if err := m.client.SetUnitId(m.cfg.UnitID); err != nil {
-			m.logger.Warnf("set unit id=%d failed: %v", m.cfg.UnitID, err)
-		}
-	}
-
 	// 启动一个协程：负责自动 Open/Close + 周期读寄存器
 	// Start one goroutine: handles Open/Close + periodic register reads.
 	m.wg.Add(1)
-	go func(cfg *InstanceConfig) {
+	go func(cfg InstanceConfig) {
 		defer m.wg.Done()
 		m.runPoller(cfg)
-	}(&m.cfg)
+	}(m.cfg)
 
 	m.init = true
-	m.logger.Infof("modbus instance initialized, url=%s unit=%d start=%d quantity=%d regType=%s",
-		m.cfg.URL, m.cfg.UnitID, m.cfg.StartAddr, m.cfg.Quantity, m.cfg.RegType)
+	m.logger.Infof("modbus simulator instance initialized, url=%s", m.cfg.URL)
 
 	return nil
 }
 
 // runPoller：内部轮询逻辑，在单独协程中运行
 // runPoller: internal polling loop, runs in a dedicated goroutine.
-func (m *ModbusInstance) runPoller(cfg *InstanceConfig) {
-	regType := parseRegType(cfg.RegType)
+func (m *ModbusInstance) runPoller(cfg InstanceConfig) {
 
-	m.logger.Infof("modbus poller started, interval=%s", cfg.Model.RetryInterval)
+	m.logger.Infof("modbus simulator poller started, interval=%s", cfg.Model.RetryInterval)
 
 	for {
 		// 如果上层 ctx 已取消，直接退出
 		// If parent context is done, exit.
 		select {
 		case <-m.ctx.Done():
-			m.logger.Infof("modbus poller exit: ctx=%v", m.ctx.Err())
+			m.logger.Infof("modbus simulator poller exit: ctx=%v", m.ctx.Err())
 			return
 		default:
 		}
@@ -140,16 +180,16 @@ func (m *ModbusInstance) runPoller(cfg *InstanceConfig) {
 		cfg.Model.Status.Linking = false
 
 		// 尝试建立连接 / try to open connection.
-		if err := m.client.Open(); err != nil {
-			m.logger.Errorf("modbus open %s failed: %v", m.cfg.URL, err)
+		if err := m.client.Start(); err != nil {
+			m.logger.Errorf("modbus simulator open %s failed: %v", m.cfg.URL, err)
 			if !sleepWithContext(m.ctx, 2*time.Second) {
-				m.logger.Infof("modbus poller exit during reconnect wait")
+				m.logger.Infof("modbus simulator poller exit during reconnect wait")
 				return
 			}
 			continue
 		}
 
-		m.logger.Infof("modbus connected to %s", cfg.URL)
+		m.logger.Infof("modbus simulator connected to %s", cfg.URL)
 
 		cfg.Model.Status.Linking = true
 
@@ -162,43 +202,26 @@ func (m *ModbusInstance) runPoller(cfg *InstanceConfig) {
 				// 上层取消：关闭连接并退出
 				// Parent canceled: close connection and exit.
 				ticker.Stop()
-				_ = m.client.Close()
-				m.logger.Infof("modbus poller exit on ctx done")
+				_ = m.client.Stop()
+				m.logger.Infof("modbus simulator poller exit on ctx done")
 				return
 			case <-ticker.C:
 				// 轮询读寄存器 / poll holding/input registers.
-				values, err := m.client.ReadRegisters(
-					cfg.StartAddr,
-					cfg.Quantity,
-					regType,
-				)
-				if err != nil {
-					m.logger.Errorf("modbus read %s failed addr=%d qty=%d: %v", cfg.URL,
-						cfg.StartAddr, cfg.Quantity, err)
-					// 读失败：关闭连接，跳出内层循环，外层循环负责重连
-					// On read failure: close and let outer loop retry.
-					ticker.Stop()
-					_ = m.client.Close()
-					if !sleepWithContext(m.ctx, 2*time.Second) {
-						m.logger.Infof("modbus poller exit during reconnect wait")
-						return
-					}
-					connected = false
-					break
-				}
 
-				m.cfg.Model.Status.BytesReceived = m.cfg.Model.Status.BytesReceived + 1
-				m.cfg.Model.Status.BytesSent = m.cfg.Model.Status.BytesSent + 1
+				//m.cfg.Model.BytesReceived = m.cfg.Model.BytesReceived + 1
+				//m.cfg.Model.BytesSent = m.cfg.Model.BytesSent + 1
 
 				// 打印调试信息 / log debug values.
-				m.logger.Debugf("modbus read ok addr=%d qty=%d values=%v",
-					cfg.StartAddr, cfg.Quantity, values)
+				m.logger.Debugf("modbus simulator recv ok")
 			}
 		}
 	}
 }
 
-// Close：停止轮询、关闭 client
+func (m *ModbusInstance) Get() any {
+	return nil
+}
+
 // Close: stop poller and close client.
 func (m *ModbusInstance) Close() error {
 	m.mu.Lock()
@@ -218,7 +241,7 @@ func (m *ModbusInstance) Close() error {
 	// 关闭底层 client（如果轮询协程已经关闭，这里 Close() 基本是幂等的）
 	// Close underlying client (poller already closed it, so this is mostly idempotent).
 	if m.client != nil {
-		_ = m.client.Close()
+		_ = m.client.Stop()
 		m.client = nil
 	}
 
@@ -227,13 +250,9 @@ func (m *ModbusInstance) Close() error {
 	m.init = false
 
 	if m.logger != nil {
-		m.logger.Infof("modbus instance closed")
+		m.logger.Infof("modbus simulator instance closed")
 	}
 	return nil
-}
-
-func (m *ModbusInstance) Get() any {
-	return m.cfg.Model
 }
 
 // UpdateConfig：支持运行时配置更新（包括 URL、端口等），必要时重启 Modbus 客户端
@@ -252,13 +271,6 @@ func (m *ModbusInstance) UpdateConfig(raw pluginapi.InstanceConfig) error {
 
 	// 填充默认值（防止被设置成 0） / fill defaults.
 
-	if newCfg.Quantity == 0 {
-		newCfg.Quantity = 10
-	}
-	if newCfg.RegType == "" {
-		newCfg.RegType = "holding"
-	}
-
 	// 判断是否需要重启（任意字段变化就重启，简单粗暴但安全）
 	// Decide if restart is needed (restart on any change: simple and safe).
 	needRestart := (newCfg != m.cfg)
@@ -274,21 +286,19 @@ func (m *ModbusInstance) UpdateConfig(raw pluginapi.InstanceConfig) error {
 
 	if !needRestart {
 		if logger != nil {
-			logger.Infof("modbus config updated without restart: url=%s unit=%d start=%d qty=%d regType=%s",
-				m.cfg.URL, m.cfg.UnitID, m.cfg.StartAddr, m.cfg.Quantity, m.cfg.RegType)
+			logger.Infof("modbus simulator config updated without restart: url=%s", m.cfg.URL)
 		}
 		return nil
 	}
 
 	if logger != nil {
-		logger.Infof("modbus config changed, restarting client: url=%s unit=%d start=%d qty=%d regType=%s",
-			m.cfg.URL, m.cfg.UnitID, m.cfg.StartAddr, m.cfg.Quantity, m.cfg.RegType)
+		logger.Infof("modbus simulator config changed, restarting client: url=%s", m.cfg.URL)
 	}
 
 	// 1) 关闭当前实例（停止轮询 + 关闭 client）
 	// 1) Close current instance (stop poller and close client).
 	if err := m.Close(); err != nil {
-		return fmt.Errorf("modbus[%s]: close before restart failed: %w", m.id, err)
+		return fmt.Errorf("modbus[%s] simulator: close before restart failed: %w", m.id, err)
 	}
 
 	// 2) 检查 parent ctx 是否还有效
@@ -298,7 +308,7 @@ func (m *ModbusInstance) UpdateConfig(raw pluginapi.InstanceConfig) error {
 	}
 	if err := parent.Err(); err != nil {
 		if logger != nil {
-			logger.Warnf("parent context canceled, skip restart: %v", err)
+			logger.Warnf("simulator parent context canceled, skip restart: %v", err)
 		}
 		return err
 	}
@@ -312,13 +322,13 @@ func (m *ModbusInstance) UpdateConfig(raw pluginapi.InstanceConfig) error {
 // ModbusFactory: implements pluginapi.Factory.
 type ModbusFactory struct{}
 
-func (f *ModbusFactory) Type() string { return "mbus" }
+func (f *ModbusFactory) Type() string { return "cmbus" }
 
 // New：根据配置创建实例（真正启动在 Init 中完成）
 // New: create an instance from config (real start happens in Init).
 func (f *ModbusFactory) New(id string, raw pluginapi.InstanceConfig) (pluginapi.Instance, error) {
 	if id == "" {
-		return nil, fmt.Errorf("modbus: empty instance id")
+		return nil, fmt.Errorf("modbus simulator: empty instance id")
 	}
 
 	var cfg InstanceConfig
@@ -340,19 +350,6 @@ func (f *ModbusFactory) New(id string, raw pluginapi.InstanceConfig) (pluginapi.
 // init: register factory.
 func init() {
 	pluginapi.RegisterFactory(&ModbusFactory{})
-}
-
-// parseRegType：把字符串映射到 modbus.RegType
-// parseRegType: map string to modbus.RegType.
-func parseRegType(s string) modbus.RegType {
-	switch s {
-	case "input", "input_register", "ir":
-		return modbus.INPUT_REGISTER
-	case "holding", "holding_register", "hr":
-		fallthrough
-	default:
-		return modbus.HOLDING_REGISTER
-	}
 }
 
 // sleepWithContext：带 ctx 的 sleep，返回是否正常 sleep 完成

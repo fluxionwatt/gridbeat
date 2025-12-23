@@ -123,6 +123,10 @@ func (g *GooseInstance) doFlush(ctx context.Context) error {
 	}
 }
 
+func (g *GooseInstance) Get() any {
+	return nil
+}
+
 // Close：cancel ctx + 等待所有协程退出
 // Close: cancel ctx + wait for all goroutines to exit.
 func (g *GooseInstance) Close() error {

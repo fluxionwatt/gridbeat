@@ -1,115 +1,14 @@
-package cmd
+package cmbus
 
 import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
-	"log"
 	"math"
-	"os"
-	"sync"
 	"time"
 
-	"github.com/fluxionwatt/gridbeat/core"
 	"github.com/fluxionwatt/gridbeat/utils/modbus"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
-
-func init() {
-
-	//simulateCmd.Flags().StringVar(&rtuPort, "port", "/dev/ttyUSB0", "serial port")
-	//simulateCmd.Flags().IntVar(&rtuBaud, "baud", 9600, "baud rate")
-	//simulateCmd.Flags().StringVar(&rtuSlaves, "slaves", "1,2,3", "comma separated slave IDs")
-
-	rootCmd.AddCommand(simulateCmd)
-}
-
-var simulateCmd = &cobra.Command{
-	Use:   "simulator",
-	Short: "Run Modbus simulator",
-	Args:  cobra.NoArgs, // 不接受额外位置参数，只用 flag
-	Run:   serverSimulator,
-}
-
-const (
-	MINUS_ONE int16 = -1
-)
-
-// New creates a new storage
-func serverSimulator(cmd *cobra.Command, args []string) {
-
-	var errorLogger = logrus.New()
-	errorLogger.SetFormatter(&logrus.JSONFormatter{})
-	errorLogger.SetOutput(os.Stdout)
-
-	for _, rtu := range core.Gconfig.Simulator.ModbusRTU {
-
-		// create the handler object
-		eh := &exampleHandler{
-			log: errorLogger,
-		}
-
-		var parity string
-		if rtu.Parity == 0 {
-			parity = "N"
-		} else {
-			parity = "Y"
-		}
-
-		// for an RTU (serial) device/bus
-		server, err := modbus.NewRTUServer(&modbus.ModbusRtuServerConfig{
-			TTYPath:       rtu.Name,
-			BaudRate:      rtu.Rate,
-			ModbusAddress: 0,
-			DataBits:      rtu.DataRate,
-			StopBits:      rtu.StopBits,
-			Parity:        parity,
-			Logger:        log.New(errorLogger.Writer(), "", 0),
-		}, eh)
-
-		if err != nil {
-			errorLogger.Fatal(err)
-			return
-		}
-
-		// start accepting client connections
-		// note that Start() returns as soon as the server is started
-		err = server.Start()
-		if err != nil {
-			errorLogger.Fatal("failed to start simulator at ", rtu.Name, " ", err)
-			return
-		}
-		errorLogger.Info("simulator started at ", rtu.Name)
-	}
-
-	select {}
-}
-
-// Example handler object, passed to the NewServer() constructor above.
-type exampleHandler struct {
-	log *logrus.Logger
-
-	// this lock is used to avoid concurrency issues between goroutines, as
-	// handler methods are called from different goroutines
-	// (1 goroutine per client)
-	lock sync.RWMutex
-
-	// simple uptime counter, incremented in the main() above and exposed
-	// as a 32-bit input register (2 consecutive 16-bit modbus registers).
-	uptime uint32
-
-	// these are here to hold client-provided (written) values, for both coils and
-	// holding registers
-	coils [100]bool
-
-	inputReg   [65636]uint16
-	holdingReg [65636]uint16
-
-	// unix timestamp register, incremented in the main() function above and exposed
-	// as a 32-bit holding register (2 consecutive 16-bit modbus registers).
-	clock uint32
-}
 
 // Coil handler method.
 // This method gets called whenever a valid modbus request asking for a coil operation is
@@ -118,12 +17,12 @@ type exampleHandler struct {
 // read-only.
 // (read them with ./modbus-cli --target tcp://localhost:5502 rc:0+99, write to register n
 // with ./modbus-cli --target tcp://localhost:5502 wr:n:<true|false>)
-func (eh *exampleHandler) HandleCoils(req *modbus.CoilsRequest) (res []bool, err error) {
+func (eh *ModbusInstance) HandleCoils(req *modbus.CoilsRequest) (res []bool, err error) {
 	if req.UnitId != 1 {
 		// only accept unit ID #1
 		// note: we're merely filtering here, but we could as well use the unit
 		// ID field to support multiple register maps in a single server.
-		err = modbus.ErrIllegalFunction
+		//err = modbus.ErrIllegalFunction
 		return
 	}
 
@@ -159,7 +58,7 @@ func (eh *exampleHandler) HandleCoils(req *modbus.CoilsRequest) (res []bool, err
 // Note that we're returning ErrIllegalFunction unconditionally.
 // This will cause the client to receive "illegal function", which is the modbus way of
 // reporting that this server does not support/implement the discrete input type.
-func (eh *exampleHandler) HandleDiscreteInputs(req *modbus.DiscreteInputsRequest) (res []bool, err error) {
+func (eh *ModbusInstance) HandleDiscreteInputs(req *modbus.DiscreteInputsRequest) (res []bool, err error) {
 	// this is the equivalent of saying
 	// "discrete inputs are not supported by this device"
 	// (try it with modbus-cli --target tcp://localhost:5502 rdi:1)
@@ -171,7 +70,7 @@ func (eh *exampleHandler) HandleDiscreteInputs(req *modbus.DiscreteInputsRequest
 // Holding register handler method.
 // This method gets called whenever a valid modbus request asking for a holding register
 // operation (either read or write) received by the server.
-func (eh *exampleHandler) HandleHoldingRegisters(req *modbus.HoldingRegistersRequest) (res []uint16, err error) {
+func (eh *ModbusInstance) HandleHoldingRegisters(req *modbus.HoldingRegistersRequest) (res []uint16, err error) {
 	var regAddr uint16
 
 	if req.UnitId != 1 {
@@ -193,11 +92,11 @@ func (eh *exampleHandler) HandleHoldingRegisters(req *modbus.HoldingRegistersReq
 
 		if req.IsWrite {
 			eh.holdingReg[regAddr] = req.Args[i]
-			s := fmt.Sprintf("recive regAddr %v quantity %v unitID %v", regAddr, req.Quantity, req.UnitId)
-			eh.log.Info(s)
+			s := fmt.Sprintf("recive IsWrite regAddr %v quantity %v unitID %v", regAddr, req.Quantity, req.UnitId)
+			eh.logger.Infof(s)
 		} else {
 			s := fmt.Sprintf("recive regAddr %v quantity %v unitID %v", regAddr, req.Quantity, req.UnitId)
-			eh.log.Info(s)
+			eh.logger.Infof(s)
 		}
 
 		res = append(res, eh.holdingReg[regAddr])
@@ -210,14 +109,14 @@ func (eh *exampleHandler) HandleHoldingRegisters(req *modbus.HoldingRegistersReq
 // This method gets called whenever a valid modbus request asking for an input register
 // operation is received by the server.
 // Note that input registers are always read-only as per the modbus spec.
-func (eh *exampleHandler) HandleInputRegisters(req *modbus.InputRegistersRequest) (res []uint16, err error) {
+func (eh *ModbusInstance) HandleInputRegisters(req *modbus.InputRegistersRequest) (res []uint16, err error) {
 	var unixTs_s uint32
 	var minusOne int16 = -1
 
 	if req.UnitId != 1 {
 		// only accept unit ID #1
-		err = modbus.ErrIllegalFunction
-		return
+		//	err = modbus.ErrIllegalFunction
+		//	return
 	}
 
 	// get the current unix timestamp, converted as a 32-bit unsigned integer for

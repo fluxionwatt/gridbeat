@@ -14,12 +14,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func NewHandler(errorLogger *logrus.Logger, accessLogger *logrus.Logger) *fiber.App {
+func NewHandler(logger logrus.FieldLogger) *fiber.App {
 
 	app := fiber.New(fiber.Config{
 		// 统一错误处理 + logrus
 		ErrorHandler: func(c fiber.Ctx, err error) error {
-			errorLogger.WithFields(logrus.Fields{
+			logger.WithFields(logrus.Fields{
 				"path":   c.Path(),
 				"ip":     c.IP(),
 				"method": c.Method(),
@@ -42,19 +42,8 @@ func NewHandler(errorLogger *logrus.Logger, accessLogger *logrus.Logger) *fiber.
 	//stop := make(chan struct{})
 	//s.StartAuditRetentionJob(stop)
 
-	app.Use(func(c fiber.Ctx) error {
-		c.Locals("logger", errorLogger)
-		return c.Next()
-	})
-
 	app.Use(pprof.New(pprof.Config{Prefix: "/endpoint-prefix"}))
 	//app.Use(requestid.New())
-
-	// JWT Middleware
-	//app.Use(jwtware.New(jwtware.Config{
-	//	SigningKey: jwtware.SigningKey{Key: []byte("secret")},
-	//}))
-	app.Use(AccessLogMiddleware(accessLogger))
 
 	/*
 		app.Use(recover.New(recover.Config{

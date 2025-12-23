@@ -8,6 +8,16 @@ import (
 	"gorm.io/gorm"
 )
 
+type ChannelStatus struct {
+	Working         bool          `gorm:"-" json:"working"`       // 工作状态
+	Linking         bool          `gorm:"-" json:"linking"`       // 连接状态
+	CurrentDelay    time.Duration `gorm:"-" json:"current_delay"` // 当前采集延迟
+	BytesSent       uint64        `gorm:"-" json:"bytes_sent"`
+	BytesReceived   uint64        `gorm:"-" json:"bytes_received"`
+	PointsToalRead  uint64        `gorm:"-" json:"points_total_read"` // 点位读取数总计
+	PointsErrorRead uint64        `gorm:"-" json:"points_error_read"` // 点位读取错误数总计
+}
+
 // Channel 通道
 type Channel struct {
 	ID            uint          `gorm:"primaryKey;autoIncrement" json:"id"`          // ID is auto-increment primary key / 自增主键
@@ -28,11 +38,12 @@ type Channel struct {
 	Plugin        string        `gorm:"column:plugin;size:128;not null" json:"plugin"`
 
 	// Serial
-	Device   string `gorm:"uniqueIndex;size:256;not null" json:"device"` // Device is like "/dev/ttyUSB0" / 设备路径，例如 "/dev/ttyUSB0"
-	StopBits uint   `gorm:"column:stop_bits" json:"stop_bits"`           // 停止位
-	Speed    uint   `gorm:"column:speed" json:"speed"`                   // speed
-	DataBits uint   `gorm:"column:data_bits" json:"data_bits"`           // data bits
-	Parity   uint   `gorm:"column:parity" json:"parity"`                 // parity
+	Device   string `gorm:"uniqueIndex;size:256;not null" json:"device"`  // Device is like "/dev/ttyUSB0" / 设备路径，例如 "/dev/ttyUSB0"
+	Device2  string `gorm:"uniqueIndex;size:256;not null" json:"device2"` // Device is like "/dev/ttyUSB0" / 设备路径，例如 "/dev/ttyUSB1"
+	StopBits uint   `gorm:"column:stop_bits" json:"stop_bits"`            // 停止位
+	Speed    uint   `gorm:"column:speed" json:"speed"`                    // speed
+	DataBits uint   `gorm:"column:data_bits" json:"data_bits"`            // data bits
+	Parity   uint   `gorm:"column:parity" json:"parity"`                  // parity
 	// TCP
 	AddrStart       bool
 	TCPIPAddr       string
@@ -43,13 +54,7 @@ type Channel struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
-	Working         bool          `gorm:"-" json:"working"`       // 工作状态
-	Linking         bool          `gorm:"-" json:"linking"`       // 连接状态
-	CurrentDelay    time.Duration `gorm:"-" json:"current_delay"` // 当前采集延迟
-	BytesSent       uint64        `gorm:"-" json:"bytes_sent"`
-	BytesReceived   uint64        `gorm:"-" json:"bytes_received"`
-	PointsToalRead  uint64        `gorm:"-" json:"points_total_read"` // 点位读取数总计
-	PointsErrorRead uint64        `gorm:"-" json:"points_error_read"` // 点位读取错误数总计
+	Status ChannelStatus `gorm:"-" json:"status"`
 }
 
 // TableName 用来显式指定表名（可选）
@@ -57,12 +62,13 @@ func (Channel) TableName() string {
 	return "channel"
 }
 
-func GetDefaultSerialRow(device string) *Channel {
+func GetDefaultSerialRow(device, device2 string) *Channel {
 	return &Channel{
 		UUID:          uuid.New().String(),
 		Plugin:        "mbus",
 		PhysicalLink:  "serial",
 		Device:        device,
+		Device2:       device2,
 		Delay:         300 * time.Millisecond,
 		DebugLog:      false,
 		DebugExpiry:   time.Now(),

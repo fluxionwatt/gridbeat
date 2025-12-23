@@ -145,6 +145,10 @@ func (g *GooseInstance) Close() error {
 	return nil
 }
 
+func (m *GooseInstance) Get() any {
+	return nil
+}
+
 // UpdateConfig：更新配置（这里简单更新 cfg，不重启协程；你也可以选择 Close+Init 重启）
 // UpdateConfig: update config (simple cfg update; you may choose Close+Init to restart).
 func (g *GooseInstance) UpdateConfig(raw pluginapi.InstanceConfig) error {
