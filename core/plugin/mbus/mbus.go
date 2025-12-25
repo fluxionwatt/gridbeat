@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fluxionwatt/gridbeat/internal/models"
 	"github.com/fluxionwatt/gridbeat/pluginapi"
 	"github.com/fluxionwatt/gridbeat/utils/modbus"
 	"github.com/sirupsen/logrus"
@@ -17,7 +18,8 @@ type ModbusInstance struct {
 	id  string
 	typ string
 
-	cfg InstanceConfig
+	cfg    InstanceConfig
+	Status models.ChannelStatus
 
 	logger logrus.FieldLogger // 实例级 logger / per-instance logger
 	client *modbus.ModbusClient
@@ -136,8 +138,8 @@ func (m *ModbusInstance) runPoller(cfg *InstanceConfig) {
 		default:
 		}
 
-		cfg.Model.Status.Working = true
-		cfg.Model.Status.Linking = false
+		m.Status.Working = true
+		m.Status.Linking = false
 
 		// 尝试建立连接 / try to open connection.
 		if err := m.client.Open(); err != nil {
@@ -151,7 +153,7 @@ func (m *ModbusInstance) runPoller(cfg *InstanceConfig) {
 
 		m.logger.Infof("modbus connected to %s", cfg.URL)
 
-		cfg.Model.Status.Linking = true
+		m.Status.Linking = true
 
 		ticker := time.NewTicker(cfg.Model.RetryInterval)
 		connected := true
@@ -187,8 +189,8 @@ func (m *ModbusInstance) runPoller(cfg *InstanceConfig) {
 					break
 				}
 
-				m.cfg.Model.Status.BytesReceived = m.cfg.Model.Status.BytesReceived + 1
-				m.cfg.Model.Status.BytesSent = m.cfg.Model.Status.BytesSent + 1
+				m.Status.BytesReceived = m.Status.BytesReceived + 1
+				m.Status.BytesSent = m.Status.BytesSent + 1
 
 				// 打印调试信息 / log debug values.
 				m.logger.Debugf("modbus read ok addr=%d qty=%d values=%v",
@@ -233,7 +235,7 @@ func (m *ModbusInstance) Close() error {
 }
 
 func (m *ModbusInstance) Get() any {
-	return m.cfg.Model
+	return m.Status
 }
 
 // UpdateConfig：支持运行时配置更新（包括 URL、端口等），必要时重启 Modbus 客户端

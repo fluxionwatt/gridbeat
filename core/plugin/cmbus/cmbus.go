@@ -27,7 +27,8 @@ type ModbusInstance struct {
 	id  string
 	typ string
 
-	cfg InstanceConfig
+	cfg    InstanceConfig
+	Status models.ChannelStatus
 
 	logger  logrus.FieldLogger // 实例级 logger / per-instance logger
 	server1 *modbus.ModbusRtuServer
@@ -131,32 +132,29 @@ func (m *ModbusInstance) Init(parent context.Context, env *pluginapi.HostEnv) er
 
 	l, _, _ := ToStdLogger(m.logger, logrus.InfoLevel, "", 0)
 
-	// for an RTU (serial) device/bus
-	server1, err := modbus.NewRTUServer(&modbus.ModbusRtuServerConfig{
-		TTYPath:       m.cfg.Model.Device2,
-		BaudRate:      m.cfg.Model.Speed,
-		ModbusAddress: 0,
-		DataBits:      m.cfg.Model.DataBits,
-		StopBits:      m.cfg.Model.StopBits,
-		Parity:        parity,
-		Logger:        l,
-	}, m)
-
-	if err != nil {
-		return fmt.Errorf("modbus[%s]: create RTU server failed: %w", m.id, err)
+	var err error
+	if m.cfg.Model.PhysicalLink == "serial" {
+		// for an RTU (serial) device/bus
+		if m.server1, err = modbus.NewRTUServer(&modbus.ModbusRtuServerConfig{
+			TTYPath:       m.cfg.Model.Device2,
+			BaudRate:      m.cfg.Model.Speed,
+			ModbusAddress: 0,
+			DataBits:      m.cfg.Model.DataBits,
+			StopBits:      m.cfg.Model.StopBits,
+			Parity:        parity,
+			Logger:        l,
+		}, m); err != nil {
+			return fmt.Errorf("modbus[%s]: create RTU server(%s) failed: %w", m.cfg.URL, m.id, err)
+		}
+	} else {
+		if m.server2, err = modbus.NewServer(&modbus.ServerConfiguration{
+			URL:     m.cfg.URL,
+			Timeout: m.cfg.Model.OnnectTimeout,
+			Logger:  l,
+		}, m); err != nil {
+			return fmt.Errorf("modbus[%s]: create TCP server(%s) failed: %w", m.cfg.URL, m.id, err)
+		}
 	}
-	m.server1 = server1
-
-	server2, err := modbus.NewServer(&modbus.ServerConfiguration{
-		URL:     m.cfg.URL,
-		Timeout: m.cfg.Model.OnnectTimeout,
-		Logger:  l,
-	}, m)
-
-	if err != nil {
-		return fmt.Errorf("modbus[%s]: create TCP server failed: %w", m.id, err)
-	}
-	m.server2 = server2
 
 	// 启动一个协程：负责自动 Open/Close + 周期读寄存器
 	// Start one goroutine: handles Open/Close + periodic register reads.
@@ -188,8 +186,8 @@ func (m *ModbusInstance) runPoller(cfg InstanceConfig) {
 		default:
 		}
 
-		cfg.Model.Status.Working = true
-		cfg.Model.Status.Linking = false
+		m.Status.Working = true
+		m.Status.Linking = false
 
 		// 尝试建立连接 / try to open connection.
 		if err := m.server1.Start(); err != nil {
@@ -203,7 +201,7 @@ func (m *ModbusInstance) runPoller(cfg InstanceConfig) {
 
 		m.logger.Infof("modbus simulator connected to %s", cfg.URL)
 
-		cfg.Model.Status.Linking = true
+		m.Status.Linking = true
 
 		ticker := time.NewTicker(cfg.Model.RetryInterval)
 		connected := true
@@ -231,7 +229,7 @@ func (m *ModbusInstance) runPoller(cfg InstanceConfig) {
 }
 
 func (m *ModbusInstance) Get() any {
-	return nil
+	return m.Status
 }
 
 // Close: stop poller and close client.

@@ -54,8 +54,7 @@ type Channel struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
-	Status          ChannelStatus `gorm:"-" json:"status"`
-	SimulatorStatus ChannelStatus `gorm:"-" json:"simulator_status"`
+	Status ChannelStatus `gorm:"-" json:"status"`
 }
 
 // TableName 用来显式指定表名（可选）
@@ -65,27 +64,31 @@ func (Channel) TableName() string {
 
 func GetDefaultSerialRow(device, device2 string) *Channel {
 	return &Channel{
-		UUID:          uuid.New().String(),
-		Plugin:        "mbus",
-		PhysicalLink:  "serial",
-		Device:        device,
-		Device2:       device2,
-		Delay:         300 * time.Millisecond,
-		DebugLog:      false,
-		DebugExpiry:   time.Now(),
-		VerifyHeader:  false,
-		Speed:         19200,
-		OnnectTimeout: 300 * time.Millisecond,
-		Downgrade:     false,
-		RetryMax:      3,
-		RetryInterval: 300 * time.Millisecond,
-		Endianness:    uint(modbus.LITTLE_ENDIAN),
-		WordOrder:     uint(modbus.LOW_WORD_FIRST),
-		SendInterval:  300 * time.Millisecond,
-		StopBits:      2,
-		DataBits:      8,
-		Parity:        modbus.PARITY_NONE,
-		Disable:       false,
+		UUID:            uuid.New().String(),
+		Plugin:          "mbus",
+		PhysicalLink:    "serial",
+		Device:          device,
+		Device2:         device2,
+		Delay:           300 * time.Millisecond,
+		DebugLog:        false,
+		DebugExpiry:     time.Now(),
+		VerifyHeader:    false,
+		Speed:           19200,
+		OnnectTimeout:   300 * time.Millisecond,
+		Downgrade:       false,
+		RetryMax:        3,
+		RetryInterval:   300 * time.Millisecond,
+		Endianness:      uint(modbus.LITTLE_ENDIAN),
+		WordOrder:       uint(modbus.LOW_WORD_FIRST),
+		SendInterval:    300 * time.Millisecond,
+		StopBits:        2,
+		DataBits:        8,
+		Parity:          modbus.PARITY_NONE,
+		TCPIPAddr:       "localhost",
+		TCPPort:         5502,
+		BackupTCPIPAddr: "localhost",
+		BackupTCPPort:   5502,
+		Disable:         false,
 	}
 }
 

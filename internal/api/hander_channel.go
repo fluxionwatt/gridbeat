@@ -27,8 +27,8 @@ func (s *Server) ListOnlineChanel(c fiber.Ctx) error {
 	for i, _ := range cs {
 		in, ok := s.Mgr.Get("mbus", cs[i].UUID)
 		if ok {
-			model := in.Get().(models.Channel)
-			cs[i].Status = model.Status
+			status := in.Get().(models.ChannelStatus)
+			cs[i].Status = status
 		}
 	}
 	return response.OK(c, cs)

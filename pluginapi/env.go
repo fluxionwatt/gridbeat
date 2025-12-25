@@ -1,6 +1,8 @@
 package pluginapi
 
 import (
+	"sync"
+
 	"github.com/fluxionwatt/gridbeat/internal/config"
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/sirupsen/logrus"
@@ -21,6 +23,7 @@ type HostEnv struct {
 
 	PluginLog logrus.FieldLogger
 	MQTT      *mqtt.Server
+	WG        *sync.WaitGroup
 }
 
 const depsKey = "__global_deps__"

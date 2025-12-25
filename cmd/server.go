@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
-	"time"
 
 	"github.com/fluxionwatt/gridbeat/core"
 	"github.com/fluxionwatt/gridbeat/internal/auth"
@@ -145,7 +145,9 @@ var serverCmd = &cobra.Command{
 		}
 
 		rootCtx, rootCancel := context.WithCancel(context.Background())
-		defer rootCancel()
+		//defer rootCancel()
+
+		var wg sync.WaitGroup
 
 		// 捕获信号 / capture OS signals.
 		go func() {
@@ -161,12 +163,12 @@ var serverCmd = &cobra.Command{
 					}
 				case syscall.SIGTERM, syscall.SIGINT:
 					log.Println("exiting")
-					core.RemovePidFile(core.Gconfig.PID)
-
 					rootCancel()
-					//logger.Close()
-
-					time.Sleep(10 * time.Second)
+					log.Println("root cannel")
+					wg.Wait()
+					log.Println("wait")
+					core.RemovePidFile(core.Gconfig.PID)
+					logger.Close()
 					os.Exit(0)
 				}
 			}
@@ -179,6 +181,7 @@ var serverCmd = &cobra.Command{
 			MQTT:      server,
 			Conf:      &core.Gconfig,
 			PluginLog: logrus.NewEntry(logger.RunLogger),
+			WG:        &wg,
 		}
 
 		// 带 rootCtx + env 的 InstanceManager
@@ -191,6 +194,7 @@ var serverCmd = &cobra.Command{
 			MQTT:         server,
 			Conf:         cfg,
 			Mgr:          mgr,
+			WG:           &wg,
 			AccessLogger: logger.AccessLogger,
 		}
 
