@@ -4,16 +4,17 @@
 
 English | [简体中文](./README-CN.md)
 
-GridBeat is an open-source data acquisition and monitoring software designed for energy sectors such as photovoltaics (PV) and energy storage systems (ESS).Acting as a data aggregation hub, it enables the collection, protocol conversion, storage, and management of sensor data reported by a wide range of devices, including PV inverters, Power Conversion Systems (PCS), Energy Storage Systems (ESS), environmental monitors, smart meters, box-type transformers, and EV charging piles. It provides highly efficient monitoring and maintenance capabilities through a web interface (including APIs).
+GridBeat is an open-source SCADA (Supervisory Control and Data Acquisition) software designed for energy sectors such as photovoltaics (PV) and energy storage. Serving as a data aggregation hub, it collects, converts, stores, and manages sensor data reported from various devices—including PV inverters, Power Conversion Systems (PCS), Energy Storage Systems (ESS), environmental monitors, smart meters, box-type transformers, and EV charging piles. It enables efficient monitoring and maintenance through a web interface and integrated APIs.
 
 ### Key Functions
 
-- Data Aggregation: Collects real-time data from inverters, sensors, and other components.
-- Multi-Protocol Access Support: Supports protocols including Modbus-TCP, Modbus-RTU, etc.
-- Northbound Protocol Support: Supports protocols such as IEC 60870-5-104 and MQTT, facilitating integration with third-party management systems.
-- Edge-Native Real-Time Capabilities: Leverages low-latency edge networks to run applications with real-time processing power.
-- Modular Design: Features a loosely-coupled modular architecture, allowing for functional expansion via pluggable modules.
-- HTTP API: Provides HTTP API interfaces for seamless system integration.
+- Data Aggregation: Collects real-time data from sensors in inverters, energy storage units, and other components.
+- Multi-Protocol Inbound Support: Supports industrial protocols including Modbus-TCP and Modbus-RTU.
+- Northbound Protocol Support: Supports protocols such as IEC104, MQTT, Modbus, and GOOSE for seamless integration with third-party management systems.
+- Edge-Native Performance: Features real-time capabilities that leverage low-latency edge computing networks.
+- Modular Design: Utilizes a loosely coupled, modular architecture, allowing for functional expansion via pluggable modules.
+- HTTP API: Provides HTTP API interfaces for streamlined system integration.
+
 
 ## Quick Start
 
