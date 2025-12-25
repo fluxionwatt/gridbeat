@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fluxionwatt/gridbeat/frontend"
+	"github.com/fluxionwatt/gridbeat/webui"
 	"github.com/gofiber/contrib/v3/monitor"
 	"github.com/gofiber/contrib/v3/websocket"
 	"github.com/gofiber/fiber/v3"
@@ -75,7 +75,7 @@ func NewHandler(logger logrus.FieldLogger) *fiber.App {
 	//app.Get("/ws/ssh", auth.JWTMiddleware(), websocket.New(terminal.SSHWebsocket))
 	app.Get("/ws/ssh", websocket.New(SSHWebsocket))
 
-	distFS, _ := fs.Sub(frontend.Assets(), "dist")
+	distFS, _ := fs.Sub(webui.Assets(), "dist")
 	app.Use("/", static.New("", static.Config{
 		FS:            distFS,
 		IndexNames:    []string{"index.html"},

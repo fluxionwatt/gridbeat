@@ -12,10 +12,10 @@ vars:
 tasks:
   build:frontend:
     desc: Build frontend assets
-    dir: frontend
+    dir: webui
     cmds:
-      - npm install
-      - npm run build
+      - yarn install
+      - yarn nuxt generate
 
   build:backend:
     desc: Build backend binary
