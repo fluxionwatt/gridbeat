@@ -1,0 +1,40 @@
+{
+  "name": "webui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": ">=0.2.6",
+    "@element-plus/nuxt": "^1.1.4",
+    "@fortawesome/fontawesome-svg-core": "^7.1.0",
+    "@fortawesome/free-regular-svg-icons": "^7.1.0",
+    "@fortawesome/vue-fontawesome": "^3.1.2",
+    "@nuxt/content": "^3.9.0",
+    "@nuxtjs/i18n": "10.2.1",
+    "@pinia/nuxt": "^0.11.3",
+    "@vesp/nuxt-fontawesome": "^2.0.0",
+    "better-sqlite3": "^12.5.0",
+    "echarts": "^6.0.0",
+    "element-plus": ">=2",
+    "nuxt": "^4.2.2",
+    "pinia": "^3.0.4",
+    "vue-echarts": "^8.0.1"
+  },
+  "devDependencies": {
+    "@bootstrap-vue-next/nuxt": "^0.42.0",
+    "@fortawesome/free-brands-svg-icons": "^7.1.0",
+    "@fortawesome/free-solid-svg-icons": "^7.1.0",
+    "@nuxtjs/fontawesome": "^1.1.2",
+    "@tailwindcss/vite": "^4.1.18",
+    "@types/node": "^25.0.3",
+    "bootstrap": "^5.3.8",
+    "bootstrap-vue-next": "^0.42.0",
+    "nuxt-echarts": "^1.0.1",
+    "tailwindcss": "^4.1.18"
+  }
+}
