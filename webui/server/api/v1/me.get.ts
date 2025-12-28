@@ -1,7 +1,18 @@
+import { getAuthSession } from 'nuxt-auth-utils'
+
 export default defineEventHandler((event) => {
-  const auth = getHeader(event, 'authorization') || ''
-  if (!auth.startsWith('Bearer ')) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+  const { authMock } = useRuntimeConfig().public
+
+  if (authMock) {
+    return {
+      user: {
+        id: 1,
+        name: 'Mock User',
+        role: 'admin',
+      },
+    }
   }
-  return { id: 'u-1', username: 'admin', role: 'admin' }
+
+  const session = getAuthSession(event)
+  return session ?? null
 })
