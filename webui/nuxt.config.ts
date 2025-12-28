@@ -16,17 +16,17 @@ export default defineNuxtConfig({
     },
   },
   modules: [
-    '@bootstrap-vue-next/nuxt',
     '@element-plus/nuxt',
     '@pinia/nuxt',
     '@nuxtjs/i18n',
+    '@nuxt/ui',
     'nuxt-echarts',
-    '@nuxt/content',
+    'nuxt-auth-utils',
   ],
   runtimeConfig: {
     public: {
       apiBase: '/api/v1',
-      mock: process.env.NUXT_PUBLIC_MOCK === 'true',
+      authMock: process.env.NUXT_PUBLIC_AUTH_MOCK === 'true',
     },
   },
   // i18n（中/英/日）

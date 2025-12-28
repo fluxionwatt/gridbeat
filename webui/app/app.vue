@@ -1,4 +1,11 @@
+<script setup>
+const { fetchUser } = useAuth()
+
+onMounted(() => {
+  fetchUser()
+})
+</script>
+
 <template>
-  <NuxtRouteAnnouncer />
   <NuxtPage />
 </template>
