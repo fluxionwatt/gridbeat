@@ -1,3 +1,9 @@
+import { defineEventHandler } from 'h3'
+
+/**
+ * GET /api/v1/me
+ * For @sidebase/nuxt-auth (local provider) signOut endpoint.
+ */
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig(event)
 
