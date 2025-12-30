@@ -56,6 +56,9 @@ func (s *Server) Route(app *fiber.App) *fiber.App {
 
 	// Self-service / 自助 API
 	me := protected.Group("/me")
+
+	me.Get("/", s.ShowMe)
+
 	me.Put("/password", s.ChangeMyPassword)
 	me.Post("/tokens", s.CreateMyAPIToken)
 	me.Get("/tokens", s.ListMyTokens)
@@ -87,6 +90,11 @@ func (s *Server) Route(app *fiber.App) *fiber.App {
 
 	channels := v1.Group("/channels", auth.AuthMiddleware(s.DB, s.Cfg.Auth.JWT.Secret))
 	channels.Get("/", s.ListOnlineChanel)
+
+	point := v1.Group("/point", auth.AuthMiddleware(s.DB, s.Cfg.Auth.JWT.Secret))
+	// 创建 / Create
+	// POST /api/v1/point
+	point.Post("/", s.CreatePoint)
 
 	// settings
 	settings := v1.Group("/settings", auth.AuthMiddleware(s.DB, s.Cfg.Auth.JWT.Secret))
