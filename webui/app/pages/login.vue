@@ -5,7 +5,7 @@ definePageMeta({
     unauthenticatedOnly: true,
     navigateAuthenticatedTo: '/',
   },
-  layout: 'login', // 推荐给登录页一个空布局（如果你有）
+  layout: 'login',
 })
 
 const { t, locale,setLocale } = useI18n()
