@@ -15,7 +15,7 @@ tasks:
     dir: webui
     cmds:
       - npm install
-      - npm run build
+      - npm run generate
 
   build:backend:
     desc: Build backend binary

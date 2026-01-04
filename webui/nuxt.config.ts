@@ -1,30 +1,17 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import tailwindcss from '@tailwindcss/vite'
 import { resolve } from 'pathe'
 
 export default defineNuxtConfig({
-  modules: ['@nuxt/eslint', '@nuxt/ui', '@sidebase/nuxt-auth', '@nuxtjs/i18n',
-    '@pinia/nuxt',
-    '@bootstrap-vue-next/nuxt',
-    '@element-plus/nuxt',
+  modules: [
+    '@nuxt/eslint',
+    '@nuxt/ui',
+    '@vueuse/nuxt',
+    '@nuxtjs/i18n',
+    '@sidebase/nuxt-auth',
   ],
   ssr: false,
   devtools: {
     enabled: true
-  },
-  vite: {
-    plugins: [tailwindcss()],
-  },
-  elementPlus: {
-    // 样式：默认 'css'，你也可以用 'scss' 做主题变量覆盖
-    importStyle: 'css',
-
-    // 你要用 ElMessage / ElNotification / ElLoading 这些“方法”时需要显式安装
-    //（模块页面有 WARNING：需要手动配置 installMethods）  [oai_citation:2‡Nuxt](https://nuxt.com/modules/element-plus)
-    installMethods: ['ElMessage', 'ElNotification', 'ElMessageBox', 'ElLoading'],
-
-    // 默认语言（可选）
-    defaultLocale: 'zh-cn',
   },
   nitro: {
     output: {
@@ -33,10 +20,16 @@ export default defineNuxtConfig({
     },
   },
   css: ['~/assets/css/main.css'],
+
   routeRules: {
-    '/': { prerender: true }
+    '/': { prerender: true },
+    '/api/**': {
+      cors: true
+    }
   },
-  compatibilityDate: '2025-01-15',
+
+  compatibilityDate: '2024-07-11',
+
   eslint: {
     config: {
       stylistic: {
@@ -45,7 +38,7 @@ export default defineNuxtConfig({
       }
     }
   },
-  // i18n（中/英/日）
+ // i18n（中/英/日）
   i18n: {
     locales: [
       { code: 'en', language: 'en-US', name: 'English', file: 'en.json' },

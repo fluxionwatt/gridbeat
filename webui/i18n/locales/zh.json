@@ -115,6 +115,8 @@
     "systemUsers": "用户管理",
     "maintenance": "维护",
     "maintenanceTerminal": "设备终端",
+    "settings": "设置",
+    "wizard": "向导",
     "gatewayWizard": "网关调测向导"
   },
   "settings": {

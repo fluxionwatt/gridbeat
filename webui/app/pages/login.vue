@@ -1,229 +1,104 @@
-<!-- src/views/Login.vue -->
-<template>
-  <div class="login-page d-flex align-items-center justify-content-center">
-    <div class="login-card card shadow-sm">
-      <div class="card-body">
-        <!-- 标题 -->
-        <div class="d-flex align-items-center mb-3">
-          <font-awesome-icon
-            icon="fa-solid fa-plug"
-            class="me-2 text-primary"
-          />
-          <div>
-            <h5 class="mb-0">{{ t('login.title') }}</h5>
-            <small class="text-muted">
-              {{ t('login.subtitle') }}
-            </small>
-          </div>
-        </div>
-
-        <!-- 语言下拉（在用户名上方） -->
-        <div class="mb-3">
-          <label class="form-label d-block">
-            <font-awesome-icon icon="fa-solid fa-globe" class="me-1" />
-            {{ t('common.language') }}
-          </label>
-          <select
-            v-model="selectedLocale"
-            class="form-select form-select-sm"
-          >
-            <option
-              v-for="lang in languages"
-              :key="lang.code"
-              :value="lang.code"
-            >
-              {{ lang.label }}
-            </option>
-          </select>
-        </div>
-
-        <!-- 登录表单 -->
-        <form @submit.prevent="onSubmit">
-          <div class="mb-3">
-            <label class="form-label">
-              <font-awesome-icon icon="fa-solid fa-user" class="me-1" />
-              {{ t('login.username') }}
-            </label>
-            <div class="input-group">
-              <span class="input-group-text">
-                <font-awesome-icon icon="fa-solid fa-user" />
-              </span>
-              <input
-                v-model="loginForm.username"
-                type="text"
-                class="form-control"
-                autocomplete="username"
-                :placeholder="t('login.usernamePlaceholder')"
-              />
-            </div>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">
-              <font-awesome-icon icon="fa-solid fa-lock" class="me-1" />
-              {{ t('login.password') }}
-            </label>
-            <div class="input-group">
-              <span class="input-group-text">
-                <font-awesome-icon icon="fa-solid fa-lock" />
-              </span>
-              <input
-                v-model="loginForm.password"
-                type="password"
-                class="form-control"
-                autocomplete="current-password"
-                :placeholder="t('login.passwordPlaceholder')"
-              />
-            </div>
-          </div>
-
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="form-check">
-              <input
-                id="remember"
-                v-model="rememberMe"
-                class="form-check-input"
-                type="checkbox"
-              />
-              <label class="form-check-label" for="remember">
-                {{ t('login.rememberMe') }}
-              </label>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            class="btn btn-primary w-100 d-flex align-items-center justify-content-center"
-            :disabled="loading"
-          >
-            <span
-              v-if="loading"
-              class="spinner-border spinner-border-sm me-2"
-              role="status"
-              aria-hidden="true"
-            />
-            <font-awesome-icon
-              v-else
-              icon="fa-solid fa-right-to-bracket"
-              class="me-2"
-            />
-            <span>{{ t('login.submit') }}</span>
-          </button>
-        </form>
-      </div>
-
-      <!-- 底部版本信息 -->
-      <div class="card-footer text-center text-muted small">
-        {{ t('app.footer') }} · v{{ appVersion }}
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-  definePageMeta({
+definePageMeta({
   // 用 nuxt-auth 全站保护时，登录页一定要放行且只允许未登录访问
   auth: {
     unauthenticatedOnly: true,
     navigateAuthenticatedTo: '/',
   },
-  layout: 'auth', // 推荐给登录页一个空布局（如果你有）
+  layout: 'login', // 推荐给登录页一个空布局（如果你有）
 })
-import { reactive, ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { APP_VERSION } from '@/config/app'
 
-
-const { signIn, status } = useAuth()
+const { t, locale,setLocale } = useI18n()
 const route = useRoute()
 const redirect = computed(() => (route.query.redirect as string) || '/')
 
-const { t, locale,setLocale } = useI18n()
+const { signIn, status } = useAuth()
 
-const appVersion = APP_VERSION
-
-// 登录表单：用户名默认 root
-const loginForm = reactive({
-  username: 'root',
+const form = reactive({
+  username: '',
   password: '',
 })
 
-const rememberMe = ref(false)
-const loading = ref(false)
+const errorMsg = ref<string>('')
 
-// 语言配置
-const languages = [
-  { code: 'zh-CN' as Locale, label: '简体中文' },
-  { code: 'en' as Locale, label: 'English' },
-  { code: 'ja' as Locale, label: '日本語' },
-]
+const allowed = new Set(['en', 'zh', 'ja'] as const)
+type AppLocale = 'en' | 'zh' | 'ja'
 
-// 下拉绑定的当前语言（getter/setter 直接联动 i18n locale）
-const selectedLocale = computed<Locale>({
-  get: () => locale.value as Locale,
-  set: (val: Locale) => {
-    if (locale.value === val) return
-    locale.value = val
-    localStorage.setItem('locale', val)
-  },
-})
+function onLocaleChange(v: string) {
+  if (allowed.has(v as AppLocale)) setLocale(v as AppLocale)
+}
+const loading = computed(() => status.value === 'loading')
 
-// 初始化：从 localStorage 读取语言和用户名
-onMounted(() => {
-  const savedLocale = localStorage.getItem('locale') as Locale | null
-  if (savedLocale && languages.some((l) => l.code === savedLocale)) {
-    locale.value = savedLocale
-  }
-
-  const savedUser = localStorage.getItem('login_username')
-  if (savedUser) {
-    loginForm.username = savedUser
-    rememberMe.value = true
-  } else {
-    // 没有保存过用户名时，默认 root
-    loginForm.username = 'root'
-  }
-})
-
-// 提交登录
 async function onSubmit() {
-  if (!loginForm.username || !loginForm.password) {
-    ElMessage.warning(t('login.missingCredentials'))
-    return
-  }
-
-  loading.value = true
-
+  errorMsg.value = ''
   try {
 
    // local provider: credentials signIn
     await signIn(
-      { username: loginForm.username, password: loginForm.password },
-      { callbackUrl:  redirect.value }
+      { username: form.username, password: form.password },
+      { callbackUrl: redirect.value }
     )
-
-    ElMessage.success(t('login.success'))
   } catch (e: any) {
-   ElMessage.error(t('login.failed'))
-  } finally {
-    loading.value = false
+    // nuxt-auth 抛错形式可能不同，这里做容错显示
+    errorMsg.value = e?.data?.statusMessage || e?.message || 'Login failed'
   }
 }
 </script>
 
-<style scoped>
-.login-page {
-  min-height: 100vh;
-  background: #f5f6f8;
-  padding: 1rem;
-}
+<template>
+  <div class="min-h-screen flex items-center justify-center px-4">
+    <UCard class="w-full max-w-md">
+      <template #header>
+        <div class="flex items-center justify-between">
+          <div class="text-lg font-semibold">
+            {{ t('login.title') || 'Sign in' }}
+          </div>
 
-.login-card {
-  width: 100%;
-  max-width: 420px;
-}
+          <!-- 语言选择（可选） -->
 
-.card-footer {
-  background-color: #f9fafb;
-}
-</style>
+  <USelect
+    :model-value="locale"
+    :items="[
+      { label: 'English', value: 'en' },
+      { label: '中文', value: 'zh' },
+      { label: '日本語', value: 'ja' },
+    ]"
+    size="sm"
+    class="w-32"
+    @update:model-value="onLocaleChange"
+  />
+
+        </div>
+      </template>
+
+      <UForm :state="form" class="space-y-4" @submit="onSubmit">
+
+  <UFormField :label="t('login.username', 'Username')" name="username" required>
+    <UInput v-model="form.username" autocomplete="username" />
+  </UFormField>
+
+  <UFormField :label="t('login.password', 'Password')" name="password" required>
+    <UInput v-model="form.password" type="password" autocomplete="current-password" />
+  </UFormField>
+
+<UAlert
+  v-if="errorMsg"
+  icon="i-heroicons-exclamation-triangle"
+  color="error"
+  variant="soft"
+  :title="errorMsg"
+/>
+
+        <UButton type="submit" block :loading="loading">
+          {{ t('login.submit') || 'Login' }}
+        </UButton>
+      </UForm>
+
+      <template #footer>
+        <div class="text-xs text-gray-500">
+          {{ t('app.title') || 'Industrial Gateway Admin' }}
+        </div>
+      </template>
+    </UCard>
+  </div>
+</template>

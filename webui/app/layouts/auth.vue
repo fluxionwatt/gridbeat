@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import { BContainer, BRow, BCol } from 'bootstrap-vue-next'
+//import { BContainer, BRow, BCol } from 'bootstrap-vue-next'
 </script>
 
 <style scoped>
