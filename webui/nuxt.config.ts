@@ -55,14 +55,14 @@ export default defineNuxtConfig({
     },
   },
   runtimeConfig: {
-    baseURL: '/api/v1',
+    baseURL: '/api',
     upstream: process.env.NUXT_API_UPSTREAM || 'http://localhost:8080',
     public: {
       apiMode: process.env.NUXT_PUBLIC_API_MODE || 'mock',
     },
   },
   auth: {
-    baseURL: '/api/v1',
+    baseURL: '/api',
     originEnvKey: 'NUXT_API_UPSTREAM',
     provider: {
       type: 'local',

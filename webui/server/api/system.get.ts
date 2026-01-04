@@ -1,4 +1,4 @@
-// server/api/v1/system.get.ts
+// server/api/system.get.ts
 import { defineEventHandler, getRequestHeader, setResponseStatus, createError } from 'h3'
 
 type SystemInfo = {

@@ -181,11 +181,6 @@ async function onLogout() {
     </template>
   </UHeader>
 
-
-
-    <!-- Info Modal -->
-
-
   <UDashboardGroup unit="rem">
     <UDashboardSidebar
       id="default"

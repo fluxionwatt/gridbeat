@@ -33,7 +33,7 @@ type Server struct {
 // App 构建包含路由的 Fiber 应用。
 func (s *Server) Route(app *fiber.App) *fiber.App {
 
-	v1 := app.Group("/api/v1")
+	v1 := app.Group("/api")
 
 	// Public / 无需鉴权 API
 	v1.Get("/health", func(c fiber.Ctx) error {
