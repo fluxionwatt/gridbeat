@@ -2,7 +2,7 @@ export function useApi() {
   const { token } = useAuth()
 
   return $fetch.create({
-    baseURL: '/api/v1',
+    baseURL: '/api',
     headers: token.value ? { Authorization: `Bearer ${token.value}` } : undefined,
   })
 }
