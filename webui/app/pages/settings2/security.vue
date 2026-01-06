@@ -1,9 +1,4 @@
 <script setup lang="ts">
-definePageMeta({
-  layout: 'dashboard',
-  innerLayout: 'dashboard-inner-wide' // 需要全宽就打开
-})
-
 import * as z from 'zod'
 import type { FormError } from '@nuxt/ui'
 

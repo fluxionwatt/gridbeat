@@ -1,9 +1,4 @@
 <script setup lang="ts">
-definePageMeta({
-  layout: 'dashboard',
-  innerLayout: 'dashboard-inner-wide' // 需要全宽就打开
-})
-
 import type { Member } from '~/types'
 
 const { data: members } = await useFetch<Member[]>('/api/members', { default: () => [] })

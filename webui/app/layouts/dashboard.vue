@@ -38,7 +38,7 @@ const items = computed<NavigationMenuItem[]>(() => [
   {
     label: t('route.overview'),
     to: '/',
-    active: route.path.startsWith('/')
+    active: route.path === '/'
   },
   {
     label: t('route.deviceMonitor'),
@@ -63,7 +63,14 @@ const items = computed<NavigationMenuItem[]>(() => [
   {
     label: t('route.wizard'),
     to: '/wizard',
-    active: route.path.startsWith('/wizard')
+    active: route.path.startsWith('/wizard'),
+    children: [
+      {
+        label: t('route.gatewayWizard'),
+        to: '/wizard/gateway',
+        active: route.path.startsWith('/wizard/gateway')
+      }
+    ]
   },
 ])
 

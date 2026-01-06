@@ -20,9 +20,11 @@ export default defineNuxtConfig({
     },
   },
   css: ['~/assets/css/main.css'],
-
+  experimental: {
+    payloadExtraction: false,
+  },
   routeRules: {
-    '/': { prerender: true },
+    '/': { prerender: false },
     '/api/**': {
       cors: true
     }

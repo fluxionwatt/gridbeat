@@ -3,6 +3,6 @@ export function useApi() {
 
   return $fetch.create({
     baseURL: '/api',
-    headers: token.value ? { Authorization: `Bearer ${token.value}` } : undefined,
+    headers: token.value ? { Authorization: `${token.value}` } : undefined,
   })
 }

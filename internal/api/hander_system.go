@@ -3,6 +3,7 @@ package api
 import (
 	"time"
 
+	"github.com/fluxionwatt/gridbeat/internal/response"
 	"github.com/fluxionwatt/gridbeat/version"
 	"github.com/gofiber/fiber/v3"
 	"github.com/shirou/gopsutil/v4/cpu"
@@ -11,19 +12,21 @@ import (
 )
 
 func (s *Server) Version(c fiber.Ctx) error {
-	return c.JSON(fiber.Map{
+
+	up, _ := host.Uptime()
+
+	return response.OK(c, fiber.Map{
 		"productName": version.ProductName,
 		"Version":     version.Version,
 		"buildTime":   version.BUILDTIME,
-		"gitCommit":   version.CommitSHA,
-		"copyright":   "© 2025 Your Company. All rights reserved.",
-		"extra":       "版本信息",
+		"commit":      version.CommitSHA,
+		"serverTime":  time.Now(),
+		"uptimeSec":   up,
+		"mode":        "release",
 	})
 }
 
 func (s *Server) MaintenanceOverview(c fiber.Ctx) error {
-
-	//log := GetLogger(c)
 
 	up, _ := host.Uptime()
 
@@ -37,14 +40,15 @@ func (s *Server) MaintenanceOverview(c fiber.Ctx) error {
 	}
 
 	data := fiber.Map{
-		"uptimeSeconds": up,
-		"cpuUsage":      cpuUsed,
-		"memUsage":      v.UsedPercent,
+		"uptimeSec": up,
+		"cpuUsage":  cpuUsed,
+		"memUsage":  v.UsedPercent,
 		"services": []fiber.Map{
 			fiber.Map{"name": "Modbus", "status": "up"},
 			fiber.Map{"name": "MQTT", "status": "down"},
 			fiber.Map{"name": "Northbound", "status": "degraded"},
 		},
 	}
-	return c.JSON(data)
+
+	return response.OK(c, data)
 }
