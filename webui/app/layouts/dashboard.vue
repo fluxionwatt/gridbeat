@@ -29,6 +29,7 @@
 <script setup lang="ts">
 import { useAuth, useRoute } from '#imports'
 import type { NavigationMenuItem } from '@nuxt/ui'
+import { fa } from 'zod/locales'
 
 const { signOut } = useAuth()
 const route = useRoute()
@@ -62,8 +63,6 @@ const items = computed<NavigationMenuItem[]>(() => [
   },
   {
     label: t('route.wizard'),
-    to: '/wizard',
-    active: route.path.startsWith('/wizard'),
     children: [
       {
         label: t('route.gatewayWizard'),
