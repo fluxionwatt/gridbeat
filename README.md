@@ -39,15 +39,30 @@ brew install go node
 brew go-task goreleaser
 ```
 
-#### 构建工具安装（Linux/AARCH64 平台）
+#### 构建工具安装（Linux 平台）
+
+##### （Linux/AARCH64 平台）
 
 ```bash
-# 安装 go（1.25 版本以上）、npm（25.X 版本以上） 工具
+# 安装 go（1.25 版本以上）
+curl -L https://mirrors.aliyun.com/golang/go1.25.5.linux-arm64.tar.gz | tar xvz -C /usr/local/
 
-wget https://mirrors.aliyun.com/golang/go1.25.5.linux-arm64.tar.gz
+# 安装 node（25.X 版本以上）
+curl -L https://mirrors.cloud.tencent.com/nodejs-release/v25.2.1/node-v25.2.1-linux-arm64.tar.gz | tar xvz -C /usr/local/ --strip-components=1
+```
 
-tar xvzf go1.25.5.linux-arm64.tar.gz -C /usr/local
+##### （Linux/X86_64 平台）
 
+```bash
+# 安装 go（1.25 版本以上）
+curl -L https://mirrors.aliyun.com/golang/go1.25.5.linux-amd64.tar.gz | tar xvz -C /usr/local/
+
+# 安装 node（25.X 版本以上）
+curl -L https://mirrors.cloud.tencent.com/nodejs-release/v25.2.1/node-v25.2.1-linux-x64.tar.gz | tar xvz -C /usr/local/ --strip-components=1
+```
+
+```bash
+# 设置 go 环境
 cat > /etc/profile.d/go.sh << 'EOF'
 # Go environment (system-wide)
 export GOROOT=/usr/local/go
@@ -58,10 +73,6 @@ EOF
 
 chmod +x /etc/profile.d/go.sh
 source /etc/profile.d/go.sh
-
-# 安装 node
-wget https://mirrors.cloud.tencent.com/nodejs-release/v25.2.1/node-v25.2.1-linux-arm64.tar.gz
-tar xvzf node-v25.2.1-linux-arm64.tar.gz -C /usr/local/ --strip-components=1
 
 # 安装构建工具 go-task、goreleaser
 go install github.com/go-task/task/v3/cmd/task@latest
@@ -78,7 +89,7 @@ git clone https://github.com/fluxionwatt/gridbeat
 cd gridbeat && task build
 ```
 
-#### rpm build
+#### rpm 构建
 
 ```bash
 goreleaser release --clean --snapshot --skip=publish --skip=announce
@@ -87,15 +98,7 @@ goreleaser release --clean --snapshot --skip=publish --skip=announce
 ### Docker
 
 ```bash
-dnf -y install podman podman-docker
-systemctl enable --now podman
-dnf install bash-completion -y
-
-docker build -f docker/Dockerfile -t fluxionwatt/gridbeat:v1.0.0 ./
-```
-
-```bash
-$ docker run -d --name gridbeat -p 8080:8080 fluxionwatt/gridbeat:1.0.0
+docker run -d --name gridbeat -p 8080:8080 fluxionwatt/gridbeat:1.0.0
 ```
 
 ### [采集 Modbus TCP 数据并通过 MQTT 发送](./docs/quick_start/quick_start_cn.md)

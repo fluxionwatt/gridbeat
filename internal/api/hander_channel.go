@@ -16,7 +16,7 @@ import (
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {object} response.Envelope[[]TokenInfo]
-// @Router /api/v1/me/tokens [get]
+// @Router /api/channel [get]
 func (s *Server) ListOnlineChanel(c fiber.Ctx) error {
 
 	var cs []models.Channel

@@ -53,7 +53,7 @@ goreleaser release --clean --snapshot --skip=publish --skip=announce
 ### Docker
 
 ```bash
-$ docker run -d --name gridbeat -p 8080:8080 fluxionwatt/gridbeat:1.0.0
+docker run -d --name gridbeat -p 8080:8080 fluxionwatt/gridbeat:1.0.0
 ```
 
 ### [Modbus TCP Data Collection and MQTT Transmission](./docs/quick_start/quick_start.md)

@@ -43,8 +43,8 @@ const items = computed<NavigationMenuItem[]>(() => [
   },
   {
     label: t('route.deviceMonitor'),
-    to: '/devices',
-    active: route.path.startsWith('/devices')
+    to: '/monitor',
+    active: route.path.startsWith('/monitor')
   },
   {
     label: t('route.history'),

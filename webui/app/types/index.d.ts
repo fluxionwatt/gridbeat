@@ -3,6 +3,39 @@ import type { AvatarProps } from '@nuxt/ui'
 export type UserStatus = 'subscribed' | 'unsubscribed' | 'bounced'
 export type SaleStatus = 'paid' | 'failed' | 'refunded'
 
+
+export interface Channel {
+      id: number,
+      delay: number,
+      debug_log: boolean,
+      debug_expiry: string,
+      verify_header: boolean,
+      onnect_timeout: number,
+      down_grade: boolean,
+      retry_max: number,
+      retry_interval: number,
+      endianness: number,
+      word_order: number,
+      send_interval: number,
+      physical_link: string
+      uuid: string,
+      disable: boolean,
+      plugin: string
+      device: string
+      device2: string
+      stop_bits: number,
+      speed: number,
+      data_bits: number,
+      parity: number,
+      AddrStart: boolean,
+      TCPIPAddr: string
+      TCPPort: number,
+      BackupTCPIPAddr: string
+      BackupTCPPort: number,
+      created_at: string,
+      updated_at: string,
+}
+
 export interface User {
   id: number
   name: string
