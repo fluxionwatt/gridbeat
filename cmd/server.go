@@ -23,7 +23,7 @@ import (
 	"github.com/fluxionwatt/gridbeat/core/plugin/cmbus"
 	_ "github.com/fluxionwatt/gridbeat/core/plugin/goose"
 	"github.com/fluxionwatt/gridbeat/core/plugin/mbus"
-	_ "github.com/fluxionwatt/gridbeat/core/plugin/stream"
+	_ "github.com/fluxionwatt/gridbeat/core/plugin/mqtt"
 )
 
 func init() {

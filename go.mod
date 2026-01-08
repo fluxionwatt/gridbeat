@@ -3,6 +3,8 @@ module github.com/fluxionwatt/gridbeat
 go 1.25.3
 
 require (
+	github.com/denisbrodbeck/machineid v1.0.1
+	github.com/eclipse/paho.golang v0.23.0
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-co-op/gocron/v2 v2.19.0
