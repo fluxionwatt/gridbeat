@@ -25,11 +25,9 @@ Default username is `root` and password is `admim`.
 You can download from [Release](https://github.com/fluxionwatt/gridbeat/releases).
 
 ```bash
-# Create dependency directories (config is the configuration file directory, log is the log file directory, data is the data file directory, and extra is the extended data directory).
-$ mkdir -p gridbeat/{config,log,data,extra}
-$ tar xvzf gridbeat-linux-amd64.tar.gz -C gridbeat/
-$ cd gridbeat
-$ ./gridbeat server
+$ tar xvzf gridbeat-v1.0.0-linux-amd64.tar.gz
+$ cd gridbeat-v1.0.0-linux-amd64
+$ ./gridbeat server -c config/gridbeat.yml
 ```
 
 Open a web browser and navigate to `http://localhost:8080` to access the Web interface.
@@ -38,16 +36,18 @@ Open a web browser and navigate to `http://localhost:8080` to access the Web int
 
 ```bash
 # Before starting, ensure that you have Go (version 1.25 or higher) and npm (version 25.X or higher) installed.
-# setup build tool
-
-brew install go-task/tap/go-task
-brew install go-task
 
 # source code
 $ git clone https://github.com/fluxionwatt/gridbeat
 
 # start build
 $ cd gridbeat && task build
+```
+
+#### rpm build
+
+```bash
+goreleaser release --clean --snapshot --skip=publish --skip=announce
 ```
 
 ### Docker

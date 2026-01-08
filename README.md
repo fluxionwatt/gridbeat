@@ -25,12 +25,21 @@ gridbeat 管理面板的默认登陆账号为 `root`，密码为 `admin`。
 ```bash
 $ tar xvzf gridbeat-v1.0.0-linux-amd64.tar.gz
 $ cd gridbeat-v1.0.0-linux-amd64
-$ ./gridbeat server
+$ ./gridbeat server -c config/gridbeat.yml
 ```
 
 浏览器中打开 `http://localhost:8080` 访问 gridbeat
 
 ### 源代码编译
+
+#### 构建工具安装（MAC平台）
+
+```bash
+brew install go node
+brew go-task goreleaser
+```
+
+#### 构建工具安装（Linux/AARCH64 平台）
 
 ```bash
 # 安装 go（1.25 版本以上）、npm（25.X 版本以上） 工具
@@ -55,25 +64,24 @@ wget https://mirrors.cloud.tencent.com/nodejs-release/v25.2.1/node-v25.2.1-linux
 tar xvzf node-v25.2.1-linux-arm64.tar.gz -C /usr/local/ --strip-components=1
 
 # 安装构建工具 go-task、goreleaser
-
-### Linux
 go install github.com/go-task/task/v3/cmd/task@latest
 go install github.com/goreleaser/goreleaser/v2@latest
-
-### Mac
-brew install go-task goreleaser
-
-# 下载源代码
-$ git clone https://github.com/fluxionwatt/gridbeat
-
-# 启动构建
-$ cd gridbeat && task build
 ```
 
-# rpm build
+#### 编译
 
 ```bash
-$ goreleaser release --clean --snapshot --skip=publish --skip=announce
+# 下载源代码
+git clone https://github.com/fluxionwatt/gridbeat
+
+# 启动构建
+cd gridbeat && task build
+```
+
+#### rpm build
+
+```bash
+goreleaser release --clean --snapshot --skip=publish --skip=announce
 ```
 
 ### Docker
