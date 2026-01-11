@@ -1,0 +1,63 @@
+*.db
+*.bak
+*.pid
+*.so
+_old
+rice-box.go
+.idea/
+/dist
+
+gridbeat
+gridbeat.exe
+
+.DS_Store
+node_modules
+
+# local env files
+.env.local
+.env.*.local
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw*
+bin/
+build/
+
+vendor/
+
+# Logs
+logs
+log
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+frontend/node_modules
+frontend/dist
+dist-ssr
+*.local
+.vscode
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
