@@ -15,7 +15,6 @@ const UButton = resolveComponent('UButton')
 const UBadge = resolveComponent('UBadge')
 const UDropdownMenu = resolveComponent('UDropdownMenu')
 const UCheckbox = resolveComponent('UCheckbox')
-const api = useApi()
 const toast = useToast()
 const table = useTemplateRef('table')
 

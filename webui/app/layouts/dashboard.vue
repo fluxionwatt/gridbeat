@@ -43,7 +43,7 @@ const items = computed<NavigationMenuItem[]>(() => [
   },
   {
     label: t('route.deviceMonitor'),
-    to: '/monitor',
+    to: '/monitor/overview',
     active: route.path.startsWith('/monitor')
   },
   {
@@ -58,7 +58,7 @@ const items = computed<NavigationMenuItem[]>(() => [
   },
   {
     label: t('route.settings'),
-    to: '/settings',
+    to: '/settings/basic',
     active: route.path.startsWith('/settings')
   },
   {

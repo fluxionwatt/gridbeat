@@ -97,7 +97,15 @@
     "historySecurityEvent": "安全事件",
     "historySecurityLog": "安全日志",
     "historyDataExport": "数据导出",
-    "settingsBasic": "基本设置",
+    "systemUsers": "用户管理",
+    "maintenance": "维护",
+    "maintenanceTerminal": "设备终端",
+    "settings": "设置",
+    "wizard": "向导",
+    "gatewayWizard": "网关调测向导"
+  },
+  "settings": {
+    "basic": "基本设置",
     "settingsDateTime": "日期与时间",
     "settingsPort": "端口设置",
     "settingsSouthDriver": "端口设置 - 南向",
@@ -112,14 +120,6 @@
     "settingsProtocolIEC104": "通信协议 - IEC104",
     "settingsProtocolGOOSE": "通信协议 - GOOSE",
     "settingsProtocolHTTPS": "通信协议 - HTTPS",
-    "systemUsers": "用户管理",
-    "maintenance": "维护",
-    "maintenanceTerminal": "设备终端",
-    "settings": "设置",
-    "wizard": "向导",
-    "gatewayWizard": "网关调测向导"
-  },
-  "settings": {
     "placeholder": "这里将来可以接入后端接口，展示和配置详细参数。",
     "dateTimeTitle": "日期与时间",
     "dateTimeDesc": "配置网关的时区、时间同步方式和本地时间参数。",

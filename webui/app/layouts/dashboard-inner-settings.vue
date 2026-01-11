@@ -26,18 +26,19 @@
 <script setup lang="ts">
 
 import type { NavigationMenuItem } from '@nuxt/ui'
-const route = useRoute()
 
+const { t } = useI18n()
+const route = useRoute()
 const collapsed = ref(true)
 
 const items: NavigationMenuItem[][] = [[{
-  label: 'Home',
+  label: t('settings.basic'),
   icon: 'i-lucide-house',
-  to: '/monitor/overview',
+  to: '/settings/basic',
 }, {
-  label: 'Channel',
+  label: t('settings.channel'),
   icon: 'i-lucide-users',
-  to: '/monitor/channel',
+  to: '/settings/channel',
 }]]
 </script>
 
