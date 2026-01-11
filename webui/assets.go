@@ -5,7 +5,7 @@ package webui
 
 import "embed"
 
-//go:embed dist/*
+//go:embed .output/public/*
 var assets embed.FS
 
 func Assets() embed.FS {

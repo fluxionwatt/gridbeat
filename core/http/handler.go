@@ -75,7 +75,7 @@ func NewHandler(logger logrus.FieldLogger) *fiber.App {
 	//app.Get("/ws/ssh", auth.JWTMiddleware(), websocket.New(terminal.SSHWebsocket))
 	app.Get("/ws/ssh", websocket.New(SSHWebsocket))
 
-	distFS, _ := fs.Sub(webui.Assets(), "dist")
+	distFS, _ := fs.Sub(webui.Assets(), ".output/public")
 	app.Use("/", static.New("", static.Config{
 		FS:            distFS,
 		IndexNames:    []string{"index.html"},
