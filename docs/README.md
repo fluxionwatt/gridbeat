@@ -1,21 +1,22 @@
 ### Local Development
 
 ```
-brew install yarn
-yarn install
-yarn docs:dev
+npm install
+npm run docs:dev
 ```
 
 ### Build
 
 ```
-yarn docs:build
+npm run docs:build
 ```
 
 ### Deployment
 
 ```
-yarn docs:deploy
+npm run docs:deploy
+
+NODE_DEBUG=gh-pages npx gh-pages -d .vitepress/dist -b gh-pages
 ```
 
 ### 发布

@@ -7,7 +7,7 @@ export default defineConfig({
   description: "GridBeat 产品文档",
   ignoreDeadLinks: true,
   base: '/gridbeat/',
-  outDir: '../public/gridbeat',
+  //outDir: '../public/gridbeat',
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
