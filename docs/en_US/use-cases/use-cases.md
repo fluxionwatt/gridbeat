@@ -1,0 +1,9 @@
+# Use Cases
+
+GridBeat's versatile use cases empower manufacturers to unlock their full potential and achieve success in today's competitive landscape. GridBeat serves as a comprehensive solution that drives operational excellence and enables data-driven decision-making. By embracing GridBeat, manufacturers can streamline processes, enhance productivity, and stay ahead of the curve in the ever-evolving world of Industrial IoT.
+
+Use cases for GridBeat:
+* [Industrial Connectivity](./connectivity/connectivity.md)
+* [Edge Stream Processing](./edge/edge.md)
+* [Sparkplug Solution](./sparkplug/sparkplug.md)
+* [Unified Namespace](./uns/uns.md)
