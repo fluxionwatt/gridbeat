@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	stdlog "log"
+	"os/exec"
 	"sync"
 	"time"
 
@@ -38,6 +39,8 @@ type ModbusInstance struct {
 	ctx       context.Context
 	cancel    context.CancelFunc
 	wg        sync.WaitGroup
+
+	socat *exec.Cmd
 
 	env *pluginapi.HostEnv
 
@@ -135,7 +138,7 @@ func (m *ModbusInstance) Init(parent context.Context, env *pluginapi.HostEnv) er
 	var err error
 	if m.cfg.Model.PhysicalLink == "serial" {
 
-		go process(m.cfg.Model.Device, m.cfg.Model.Device2)
+		m.createSocat()
 
 		// for an RTU (serial) device/bus
 		if m.server1, err = modbus.NewRTUServer(&modbus.ModbusRtuServerConfig{
@@ -157,6 +160,17 @@ func (m *ModbusInstance) Init(parent context.Context, env *pluginapi.HostEnv) er
 		}, m); err != nil {
 			return fmt.Errorf("modbus[%s]: create TCP server(%s) failed: %w", m.cfg.URL, m.id, err)
 		}
+	}
+
+	// start socat process if needed
+	if m.socat != nil {
+		go func() {
+			if err := m.socat.Run(); err != nil {
+				m.logger.Errorf("modbus[%s]: socat process exited with error: %v", m.cfg.URL, err)
+			} else {
+				m.logger.Infof("modbus[%s]: socat process exited normally", m.cfg.URL)
+			}
+		}()
 	}
 
 	// 启动一个协程：负责自动 Open/Close + 周期读寄存器
@@ -219,6 +233,7 @@ func (m *ModbusInstance) runPoller(cfg InstanceConfig) {
 				m.logger.Infof("modbus simulator poller exit on ctx done")
 				return
 			case <-ticker.C:
+				time.Sleep(time.Second)
 				// 轮询读寄存器 / poll holding/input registers.
 
 				//m.cfg.Model.BytesReceived = m.cfg.Model.BytesReceived + 1

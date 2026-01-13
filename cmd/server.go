@@ -168,7 +168,7 @@ var serverCmd = &cobra.Command{
 					wg.Wait()
 					log.Println("wait")
 					core.RemovePidFile(core.Gconfig.PID)
-					logger.Close()
+					//logger.Close()
 					os.Exit(0)
 				}
 			}

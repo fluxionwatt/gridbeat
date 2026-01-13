@@ -1,19 +1,31 @@
 package cmbus
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
+
+	"github.com/sirupsen/logrus"
 )
 
-func process(device string, device2 string) {
+func (m *ModbusInstance) createSocat() {
 
-	cmd := exec.Command(fmt.Sprintf("socat -d -d pty,raw,echo=0,link=%s pty,raw,echo=0,link=%s", device, device2))
+	m.socat = exec.Command("/opt/homebrew/bin/socat",
+		"-d", "-d",
+		"pty,raw,echo=0,link="+m.cfg.Model.Device,
+		"pty,raw,echo=0,link="+m.cfg.Model.Device2,
+	)
 
-	// Set environment variables
-	//cmd.Env = append(cmd.Env, "MY_VAR=some_value")
+	if entry, ok := m.logger.(*logrus.Entry); ok {
+		m.socat.Stdout = entry.WriterLevel(logrus.InfoLevel)
+		m.socat.Stderr = entry.WriterLevel(logrus.InfoLevel)
+	}
 
-	// Redirect standard output to the parent process's output
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	os.Remove(m.cfg.Model.Device)
+	os.Remove(m.cfg.Model.Device2)
 }
+
+/*
+if err := cmd.Run(); err != nil {
+		panic(err)
+	}
+*/
