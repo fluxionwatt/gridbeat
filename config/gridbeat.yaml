@@ -14,8 +14,17 @@ https:
     port: 8443
 serial:
     - 
-      device: /dev/ttys004
-      device2: /dev/ttys007
+      device: /tmp/ttys001
+      device2: /tmp/ttys002
+    - 
+      device: /tmp/ttys003
+      device2: /tmp/ttys004
+    - 
+      device: /tmp/ttys005
+      device2: /tmp/ttys006
+    -
+      device: /tmp/ttys007
+      device2: /tmp/ttys008
 auth:
   jwt:
     # IMPORTANT: change this in production

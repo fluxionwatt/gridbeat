@@ -134,6 +134,9 @@ func (m *ModbusInstance) Init(parent context.Context, env *pluginapi.HostEnv) er
 
 	var err error
 	if m.cfg.Model.PhysicalLink == "serial" {
+
+		go process(m.cfg.Model.Device, m.cfg.Model.Device2)
+
 		// for an RTU (serial) device/bus
 		if m.server1, err = modbus.NewRTUServer(&modbus.ModbusRtuServerConfig{
 			TTYPath:       m.cfg.Model.Device2,
