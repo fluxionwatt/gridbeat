@@ -24,7 +24,7 @@ type ModbusInstance struct {
 	typ string
 
 	cfg    InstanceConfig
-	Status models.ChannelStatus
+	Status models.InstanceStatus
 
 	logger logrus.FieldLogger // 实例级 logger / per-instance logger
 	client *modbus.ModbusClient
@@ -64,10 +64,6 @@ func (m *ModbusInstance) Init(parent context.Context, env *pluginapi.HostEnv) er
 	m.env = env
 
 	// 默认配置 / default config
-	m.cfg.URL = "tcp://" + m.cfg.Model.TCPIPAddr + ":" + fmt.Sprintf("%d", m.cfg.Model.TCPPort)
-	if m.cfg.Model.PhysicalLink == "serial" {
-		m.cfg.URL = "rtu://" + m.cfg.Model.Device
-	}
 
 	if m.cfg.Quantity == 0 {
 		m.cfg.Quantity = 10

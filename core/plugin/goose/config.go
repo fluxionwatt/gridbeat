@@ -1,4 +1,4 @@
-package mqtt
+package goose
 
 import (
 	"time"
@@ -9,7 +9,7 @@ import (
 // ModbusConfig：单个 modbus 实例的配置
 // ModbusConfig: configuration for a single modbus instance.
 type InstanceConfig struct {
-	Model models.MQTT
+	Model models.Goose
 
 	URL string `mapstructure:"url"`
 

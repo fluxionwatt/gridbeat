@@ -19,13 +19,12 @@ const (
 
 type Device struct {
 	ChannelID string
-	Channel   Channel `gorm:"references:UUID"`
 	Base
 	Name            string `gorm:"column:name;size:150;uniqueIndex;not null" json:"name"`
 	DeviceType      string `gorm:"column:device_type;size:128;not null;index" json:"device_type"` // Requirement #4: weak association by type_key (no FK)
 	Transport       string `gorm:"size:16;not null"`                                              // tcp/rtu/rtu_over_tcp...
 	Endpoint        string `gorm:"size:256;not null"`                                             // host:port or /dev/ttyS1
-	SlaveID         int    `gorm:"not null;default:1"`
+	SlaveID         uint   `gorm:"not null;default:1"`
 	PollIntervalMs  int    `gorm:"not null;default:1000"`
 	SN              string `gorm:"column:sn;size:128;not null" json:"sn"`
 	DevicePlugin    string `gorm:"column:device_plugin;size:128;not null" json:"device_plugin"`

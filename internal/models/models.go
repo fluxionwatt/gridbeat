@@ -14,7 +14,7 @@ import (
 //	  Base
 //	}
 type Base struct {
-	ID        string `gorm:"primaryKey;type:char(36)" json:"id"`
+	ID        string `gorm:"primaryKey;column:id;size:36;uniqueIndex;not null" json:"id"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`

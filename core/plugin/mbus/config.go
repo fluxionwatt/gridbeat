@@ -1,23 +1,24 @@
 package mbus
 
 import (
+	"time"
+
 	"github.com/fluxionwatt/gridbeat/internal/models"
 )
 
 // ModbusConfig：单个 modbus 实例的配置
 // ModbusConfig: configuration for a single modbus instance.
 type InstanceConfig struct {
-	Model models.Channel
+	IsSerial bool
+	Timeout  time.Duration // Timeout 是单次请求超时（例如 "1s"） Timeout is per-request timeout (e.g. "1s").
+	Channel  models.Channel
+	Serial   models.Serial
 
 	URL string `mapstructure:"url"`
 
 	// UnitID 是从站地址（0~247），为 0 时使用库默认值（一般是 1）
 	// UnitID is the slave/unit ID (0~247). 0 means "leave library default" (often 1).
 	UnitID uint8 `mapstructure:"unit_id"`
-
-	// Timeout 是单次请求超时（例如 "1s"）
-	// Timeout is per-request timeout (e.g. "1s").
-	//Timeout time.Duration `mapstructure:"timeout"`
 
 	// PollInterval 是轮询周期（例如 "1s"、"500ms"）
 	// PollInterval is polling interval (e.g. "1s", "500ms").
