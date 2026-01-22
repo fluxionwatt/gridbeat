@@ -16,7 +16,7 @@ import (
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {object} response.Envelope[[]TokenInfo]
-// @Router /api/v1/me/tokens [get]
+// @Router /api/channel [get]
 func (s *Server) ListOnlineChanel(c fiber.Ctx) error {
 
 	var cs []models.Channel
@@ -24,10 +24,10 @@ func (s *Server) ListOnlineChanel(c fiber.Ctx) error {
 		return response.Internal(c, "db error")
 	}
 
-	for i, _ := range cs {
-		in, ok := s.Mgr.Get("mbus", cs[i].UUID)
+	for i := range cs {
+		in, ok := s.Mgr.Get("mbus", cs[i].ID)
 		if ok {
-			status := in.Get().(models.ChannelStatus)
+			status := in.Get().(models.InstanceStatus)
 			cs[i].Status = status
 		}
 	}

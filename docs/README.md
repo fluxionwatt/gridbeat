@@ -1,3 +1,23 @@
+### Local Development
+
+```
+npm install
+npm run docs:dev
+```
+
+### Build
+
+```
+npm run docs:build
+```
+
+### Deployment
+
+```
+npm run docs:deploy
+
+NODE_DEBUG=gh-pages npx gh-pages -d .vitepress/dist -b gh-pages
+```
 
 ### 发布
 
@@ -13,3 +33,4 @@ gh release create v1.0.0 --title "v1.0.0" --notes "This is the release notes for
 ```
 socat -d -d pty,raw,echo=0,link=/tmp/ttys001 pty,raw,echo=0,link=/tmp/ttys002
 ```
+

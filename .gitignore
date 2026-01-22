@@ -7,7 +7,12 @@ rice-box.go
 .idea/
 /dist
 
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+docs/.vitepress/node_modules/
+
 gridbeat
+gridbeat2
 gridbeat.exe
 
 .DS_Store
@@ -16,6 +21,11 @@ node_modules
 # local env files
 .env.local
 .env.*.local
+
+webui/.nuxt/
+webui/.output/
+webui/dist/
+webui/node_modules/
 
 # Log files
 npm-debug.log*
@@ -45,8 +55,6 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-frontend/node_modules
-frontend/dist
 dist-ssr
 *.local
 .vscode

@@ -33,8 +33,8 @@ type Server struct {
 // App 构建包含路由的 Fiber 应用。
 func (s *Server) Route(app *fiber.App) *fiber.App {
 
-	v1 := app.Group("/api/v1")
-
+	v1 := app.Group("/api")
+	v1.Get("/channel", s.ListOnlineChanel)
 	// Public / 无需鉴权 API
 	v1.Get("/health", func(c fiber.Ctx) error {
 		return response.OK(c, fiber.Map{"status": "ok"})
@@ -56,6 +56,9 @@ func (s *Server) Route(app *fiber.App) *fiber.App {
 
 	// Self-service / 自助 API
 	me := protected.Group("/me")
+
+	me.Get("/", s.ShowMe)
+
 	me.Put("/password", s.ChangeMyPassword)
 	me.Post("/tokens", s.CreateMyAPIToken)
 	me.Get("/tokens", s.ListMyTokens)
@@ -85,8 +88,13 @@ func (s *Server) Route(app *fiber.App) *fiber.App {
 	serial := v1.Group("/serial", auth.AuthMiddleware(s.DB, s.Cfg.Auth.JWT.Secret))
 	registerSerialRoutes(serial, s.DB)
 
-	channels := v1.Group("/channels", auth.AuthMiddleware(s.DB, s.Cfg.Auth.JWT.Secret))
-	channels.Get("/", s.ListOnlineChanel)
+	//channel := v1.Group("/channel")
+	//channel.Get("", s.ListOnlineChanel)
+
+	point := v1.Group("/point", auth.AuthMiddleware(s.DB, s.Cfg.Auth.JWT.Secret))
+	// 创建 / Create
+	// POST /api/v1/point
+	point.Post("/", s.CreatePoint)
 
 	// settings
 	settings := v1.Group("/settings", auth.AuthMiddleware(s.DB, s.Cfg.Auth.JWT.Secret))

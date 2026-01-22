@@ -2,7 +2,7 @@ debug: false
 log-path: ./
 data-path: ./
 extra-path: ./
-plugins: /usr/lib/gridbeat/plugins
+plugins: ./plugins
 mqtt:
     port: 1883
     host: localhost
@@ -14,14 +14,23 @@ https:
     port: 8443
 serial:
     - 
-      device: /dev/ttys004
-      device2: /dev/ttys007
+      device: /tmp/ttys001
+      device2: /tmp/ttys002
+    - 
+      device: /tmp/ttys003
+      device2: /tmp/ttys004
+    - 
+      device: /tmp/ttys005
+      device2: /tmp/ttys006
+    -
+      device: /tmp/ttys007
+      device2: /tmp/ttys008
 auth:
   jwt:
     # IMPORTANT: change this in production
     # 重要：生产环境务必修改
     secret: "change-me"
-    issuer: "gridbeat"
+    issuer: "root"
   web:
     # Web session idle timeout in minutes (sliding)
     # Web 会话空闲超时时间（分钟，滑动更新）

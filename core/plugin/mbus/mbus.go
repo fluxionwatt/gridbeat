@@ -19,7 +19,7 @@ type ModbusInstance struct {
 	typ string
 
 	cfg    InstanceConfig
-	Status models.ChannelStatus
+	Status models.InstanceStatus
 
 	logger logrus.FieldLogger // 实例级 logger / per-instance logger
 	client *modbus.ModbusClient
@@ -57,9 +57,11 @@ func (m *ModbusInstance) Init(parent context.Context, env *pluginapi.HostEnv) er
 	m.env = env
 
 	// 默认配置 / default config
-	m.cfg.URL = "tcp://" + m.cfg.Model.TCPIPAddr + ":" + fmt.Sprintf("%d", m.cfg.Model.TCPPort)
-	if m.cfg.Model.PhysicalLink == "serial" {
-		m.cfg.URL = "rtu://" + m.cfg.Model.Device
+	// 默认配置 / default config
+	if m.cfg.IsSerial {
+		m.cfg.URL = "rtu://" + m.cfg.Serial.Device
+	} else {
+		m.cfg.URL = "tcp://" + m.cfg.Channel.TCPIPAddr + ":" + fmt.Sprintf("%d", m.cfg.Channel.TCPPort)
 	}
 
 	if m.cfg.Quantity == 0 {
@@ -81,11 +83,11 @@ func (m *ModbusInstance) Init(parent context.Context, env *pluginapi.HostEnv) er
 	// Create Modbus client based on current cfg.
 	client, err := modbus.NewClient(&modbus.ClientConfiguration{
 		URL:      m.cfg.URL,
-		Timeout:  m.cfg.Model.OnnectTimeout,
-		Speed:    m.cfg.Model.Speed,
-		DataBits: m.cfg.Model.DataBits,
-		Parity:   m.cfg.Model.Parity,
-		StopBits: m.cfg.Model.StopBits,
+		Timeout:  m.cfg.Serial.OnnectTimeout,
+		Speed:    m.cfg.Serial.Speed,
+		DataBits: m.cfg.Serial.DataBits,
+		Parity:   m.cfg.Serial.Parity,
+		StopBits: m.cfg.Serial.StopBits,
 	})
 	if err != nil {
 		return fmt.Errorf("modbus[%s]: create client failed: %w", m.id, err)
@@ -96,7 +98,11 @@ func (m *ModbusInstance) Init(parent context.Context, env *pluginapi.HostEnv) er
 	// big-endian with the high word first.
 	// change the byte/word ordering of subsequent requests to little endian, with
 	// the low word first (note that the second argument only affects 32/64-bit values)
-	client.SetEncoding(modbus.Endianness(m.cfg.Model.Endianness), modbus.WordOrder(m.cfg.Model.Endianness))
+	if m.cfg.IsSerial {
+		client.SetEncoding(modbus.Endianness(m.cfg.Serial.Endianness), modbus.WordOrder(m.cfg.Serial.Endianness))
+	} else {
+		client.SetEncoding(modbus.Endianness(m.cfg.Channel.Endianness), modbus.WordOrder(m.cfg.Channel.Endianness))
+	}
 
 	// 设置 UnitID（如果配置了）
 	// Set unit ID (if configured).
@@ -111,7 +117,12 @@ func (m *ModbusInstance) Init(parent context.Context, env *pluginapi.HostEnv) er
 	m.wg.Add(1)
 	go func(cfg *InstanceConfig) {
 		defer m.wg.Done()
-		m.runPoller(cfg)
+		if m.cfg.IsSerial {
+			m.runPollerRTU(cfg)
+		} else {
+			m.runPollerTCP(cfg)
+		}
+
 	}(&m.cfg)
 
 	m.init = true
@@ -121,19 +132,18 @@ func (m *ModbusInstance) Init(parent context.Context, env *pluginapi.HostEnv) er
 	return nil
 }
 
-// runPoller：内部轮询逻辑，在单独协程中运行
-// runPoller: internal polling loop, runs in a dedicated goroutine.
-func (m *ModbusInstance) runPoller(cfg *InstanceConfig) {
+// runPollerRTU：内部轮询逻辑，在单独协程中运行 internal polling loop, runs in a dedicated goroutine.
+func (m *ModbusInstance) runPollerRTU(cfg *InstanceConfig) {
 	regType := parseRegType(cfg.RegType)
 
-	m.logger.Infof("modbus poller started, interval=%s", cfg.Model.RetryInterval)
+	m.logger.Infof("modbus poller(RTU) started, interval=%s", cfg.Serial.RetryInterval)
 
 	for {
 		// 如果上层 ctx 已取消，直接退出
 		// If parent context is done, exit.
 		select {
 		case <-m.ctx.Done():
-			m.logger.Infof("modbus poller exit: ctx=%v", m.ctx.Err())
+			m.logger.Infof("modbus poller(RTU) exit: ctx=%v", m.ctx.Err())
 			return
 		default:
 		}
@@ -143,19 +153,19 @@ func (m *ModbusInstance) runPoller(cfg *InstanceConfig) {
 
 		// 尝试建立连接 / try to open connection.
 		if err := m.client.Open(); err != nil {
-			m.logger.Errorf("modbus open %s failed: %v", m.cfg.URL, err)
+			m.logger.Errorf("modbus poller(RTU) open %s failed: %v", m.cfg.URL, err)
 			if !sleepWithContext(m.ctx, 2*time.Second) {
-				m.logger.Infof("modbus poller exit during reconnect wait")
+				m.logger.Infof("modbus poller(RTU) exit during reconnect wait")
 				return
 			}
 			continue
 		}
 
-		m.logger.Infof("modbus connected to %s", cfg.URL)
+		m.logger.Infof("modbus poller(RTU) connected to %s", cfg.URL)
 
 		m.Status.Linking = true
 
-		ticker := time.NewTicker(cfg.Model.RetryInterval)
+		ticker := time.NewTicker(cfg.Serial.RetryInterval)
 		connected := true
 
 		for connected {
@@ -165,7 +175,7 @@ func (m *ModbusInstance) runPoller(cfg *InstanceConfig) {
 				// Parent canceled: close connection and exit.
 				ticker.Stop()
 				_ = m.client.Close()
-				m.logger.Infof("modbus poller exit on ctx done")
+				m.logger.Infof("modbus poller(RTU) exit on ctx done")
 				return
 			case <-ticker.C:
 				// 轮询读寄存器 / poll holding/input registers.
@@ -175,14 +185,14 @@ func (m *ModbusInstance) runPoller(cfg *InstanceConfig) {
 					regType,
 				)
 				if err != nil {
-					m.logger.Errorf("modbus read %s failed addr=%d qty=%d: %v", cfg.URL,
+					m.logger.Errorf("modbus poller(RTU) read %s failed addr=%d qty=%d: %v", cfg.URL,
 						cfg.StartAddr, cfg.Quantity, err)
 					// 读失败：关闭连接，跳出内层循环，外层循环负责重连
 					// On read failure: close and let outer loop retry.
 					ticker.Stop()
 					_ = m.client.Close()
 					if !sleepWithContext(m.ctx, 2*time.Second) {
-						m.logger.Infof("modbus poller exit during reconnect wait")
+						m.logger.Infof("modbus poller(RTU) exit during reconnect wait")
 						return
 					}
 					connected = false
@@ -193,7 +203,85 @@ func (m *ModbusInstance) runPoller(cfg *InstanceConfig) {
 				m.Status.BytesSent = m.Status.BytesSent + 1
 
 				// 打印调试信息 / log debug values.
-				m.logger.Debugf("modbus read ok addr=%d qty=%d values=%v",
+				m.logger.Debugf("modbus poller(RTU) read ok addr=%d qty=%d values=%v",
+					cfg.StartAddr, cfg.Quantity, values)
+			}
+		}
+	}
+}
+
+// runPollerTCP：内部轮询逻辑，在单独协程中运行 internal polling loop, runs in a dedicated goroutine.
+func (m *ModbusInstance) runPollerTCP(cfg *InstanceConfig) {
+	regType := parseRegType(cfg.RegType)
+
+	m.logger.Infof("modbus poller(TCP) started, interval=%s", cfg.Channel.RetryInterval)
+
+	for {
+		// 如果上层 ctx 已取消，直接退出
+		// If parent context is done, exit.
+		select {
+		case <-m.ctx.Done():
+			m.logger.Infof("modbus poller(TCP) exit: ctx=%v", m.ctx.Err())
+			return
+		default:
+		}
+
+		m.Status.Working = true
+		m.Status.Linking = false
+
+		// 尝试建立连接 / try to open connection.
+		if err := m.client.Open(); err != nil {
+			m.logger.Errorf("modbus poller(TCP) open %s failed: %v", m.cfg.URL, err)
+			if !sleepWithContext(m.ctx, 2*time.Second) {
+				m.logger.Infof("modbus poller(TCP) exit during reconnect wait")
+				return
+			}
+			continue
+		}
+
+		m.logger.Infof("modbus poller(TCP) connected to %s", cfg.URL)
+
+		m.Status.Linking = true
+
+		ticker := time.NewTicker(cfg.Channel.RetryInterval)
+		connected := true
+
+		for connected {
+			select {
+			case <-m.ctx.Done():
+				// 上层取消：关闭连接并退出
+				// Parent canceled: close connection and exit.
+				ticker.Stop()
+				_ = m.client.Close()
+				m.logger.Infof("modbus poller(TCP) exit on ctx done")
+				return
+			case <-ticker.C:
+				// 轮询读寄存器 / poll holding/input registers.
+				values, err := m.client.ReadRegisters(
+					cfg.StartAddr,
+					cfg.Quantity,
+					regType,
+				)
+				if err != nil {
+					m.logger.Errorf("modbus poller(TCP) read %s failed addr=%d qty=%d: %v", cfg.URL,
+						cfg.StartAddr, cfg.Quantity, err)
+					// 读失败：关闭连接，跳出内层循环，外层循环负责重连
+					// On read failure: close and let outer loop retry.
+					ticker.Stop()
+					_ = m.client.Close()
+					if !sleepWithContext(m.ctx, 2*time.Second) {
+						m.logger.Infof("modbus poller(TCP) exit during reconnect wait")
+						return
+					}
+					connected = false
+					break
+				}
+
+				m.Status.BytesReceived = m.Status.BytesReceived + 1
+				m.Status.BytesSent = m.Status.BytesSent + 1
+
+				// 打印调试信息 / log debug values.
+				m.logger.Debugf("modbus poller(TCP) read ok addr=%d qty=%d values=%v",
 					cfg.StartAddr, cfg.Quantity, values)
 			}
 		}

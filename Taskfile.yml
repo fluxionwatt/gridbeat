@@ -10,12 +10,12 @@ vars:
     -v ./CONTRIBUTING.md:/docs/docs/contributing.md
 
 tasks:
-  build:frontend:
-    desc: Build frontend assets
-    dir: frontend
+  build:webui:
+    desc: Build webui assets
+    dir: webui
     cmds:
       - npm install
-      - npm run build
+      - npm run generate
 
   build:backend:
     desc: Build backend binary
@@ -42,9 +42,9 @@ tasks:
         sh: git describe --tags --abbrev=0 --match=v* | cut -c 2-
 
   build:
-    desc: Build both frontend and backend
+    desc: Build both webui and backend
     cmds:
-      - task: build:frontend
+      - task: build:webui
       - task: build:backend
 
   pub:
