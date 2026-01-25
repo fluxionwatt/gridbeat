@@ -53,11 +53,11 @@ func (Channel) TableName() string {
 	return "channel"
 }
 
-func GetDefaultChannelRow(device, device2 string) *Channel {
+func GetDefaultChannelRow(device string) *Channel {
 	return &Channel{
 		Base:            Base{ID: uuid.New().String()},
-		Plugin:          "mbus",
-		PhysicalLink:    "tcp",
+		Plugin:          "modbus",
+		PhysicalLink:    "serial",
 		Delay:           300 * time.Millisecond,
 		DebugLog:        false,
 		DebugExpiry:     time.Now(),
@@ -69,6 +69,7 @@ func GetDefaultChannelRow(device, device2 string) *Channel {
 		Endianness:      uint(modbus.LITTLE_ENDIAN),
 		WordOrder:       uint(modbus.LOW_WORD_FIRST),
 		SendInterval:    300 * time.Millisecond,
+		Device:          device,
 		Speed:           19200,
 		StopBits:        2,
 		DataBits:        8,

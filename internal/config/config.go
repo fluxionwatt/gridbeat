@@ -9,13 +9,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-type Serial struct {
-	Device  string `mapstructure:"device"`
-	Device2 string `mapstructure:"device2"`
-}
-
-// Config holds application configuration.
-// Config 保存应用配置。
+// Config application configuration
 type Config struct {
 	Debug       bool   `mapstructure:"debug"`
 	DisableAuth bool   `mapstructure:"disable_auth"`
@@ -38,7 +32,7 @@ type Config struct {
 		Host string `mapstructure:"host"`
 		Port uint16 `mapstructure:"port"`
 	} `mapstructure:"mqtt"`
-	Serial []Serial `mapstructure:"serial"`
+	Serial []string `mapstructure:"serial"`
 	Auth   struct {
 		JWT struct {
 			Secret string `mapstructure:"secret"`

@@ -12,7 +12,7 @@ func (m *ModbusInstance) createSocat() {
 	m.socat = exec.Command("/opt/homebrew/bin/socat",
 		"-d", "-d",
 		"pty,raw,echo=0,link="+m.cfg.Channel.Device,
-		"pty,raw,echo=0,link="+m.cfg.Channel.Device+".se",
+		"pty,raw,echo=0,link="+m.cfg.Channel.Device+"-slave",
 	)
 
 	if entry, ok := m.logger.(*logrus.Entry); ok {
@@ -21,7 +21,7 @@ func (m *ModbusInstance) createSocat() {
 	}
 
 	os.Remove(m.cfg.Channel.Device)
-	os.Remove(m.cfg.Channel.Device + ".se")
+	os.Remove(m.cfg.Channel.Device + "-slave")
 }
 
 /*
