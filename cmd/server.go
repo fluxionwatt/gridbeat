@@ -124,14 +124,14 @@ var serverCmd = &cobra.Command{
 		}
 
 		if err := db.SyncSerials(gdb, cfg.Serial); err != nil {
-			cobra.CheckErr(fmt.Errorf("sync serials failed %w", err))
+			cobra.CheckErr(fmt.Errorf("sync serials %w", err))
 			return
 		}
 
 		// 初始化默认 setting 数据（只补缺，不覆盖）
 		// Seed default settings (insert missing only, do NOT overwrite)
 		if err := db.SeedDefaultSettings(gdb); err != nil {
-			cobra.CheckErr(fmt.Errorf("seed default settings failed %w", err))
+			cobra.CheckErr(fmt.Errorf("seed default settings %w", err))
 			return
 		}
 

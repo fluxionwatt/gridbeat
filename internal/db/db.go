@@ -15,8 +15,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// Open opens sqlite database under cfg.App.DB.Dir.
-// Open 在 cfg.App.DB.Dir 下打开 sqlite 数据库。
+// Open opens sqlite database under cfg.App.DB.Dir. cfg.App.DB.Dir 下打开 sqlite 数据库。
 func Open(cfg *config.Config, errorLogger *logrus.Logger) (*gorm.DB, error) {
 	if err := config.EnsureDBDir(cfg.DataPath); err != nil {
 		return nil, err
@@ -100,13 +99,13 @@ func SeedDefaultSettings(gdb *gorm.DB) error {
 //   - update UpdatedAt if exists / 存在则更新时间（也可更新其他字段）
 //
 // 2) Devices NOT present in list: delete the record / 不在列表中的设备删除记录
-func SyncSerials(gdb *gorm.DB, devices []config.Serial) error {
+func SyncSerials(gdb *gorm.DB, devices []string) error {
 	// Normalize, trim, deduplicate / 规范化、去空格、去重
 	set := make(map[string]struct{}, len(devices))
 	normalized := make([]string, 0, len(devices))
-	normalized2 := make([]string, 0, len(devices))
+
 	for _, s := range devices {
-		d := s.Device
+		d := s
 
 		d = strings.TrimSpace(d)
 		if d == "" {
@@ -117,7 +116,6 @@ func SyncSerials(gdb *gorm.DB, devices []config.Serial) error {
 		}
 		set[d] = struct{}{}
 		normalized = append(normalized, d)
-		normalized2 = append(normalized2, s.Device2)
 	}
 
 	now := time.Now()
@@ -134,7 +132,7 @@ func SyncSerials(gdb *gorm.DB, devices []config.Serial) error {
 		}
 
 		// Upsert for present devices / 对存在的设备进行 upsert
-		for i, dev := range normalized {
+		for _, dev := range normalized {
 			if s, ok := existingSet[dev]; ok {
 				// Update updated_at to reflect current boot config / 更新时间反映当前启动配置
 				if err := tx.Model(&models.Channel{}).
@@ -144,7 +142,7 @@ func SyncSerials(gdb *gorm.DB, devices []config.Serial) error {
 				}
 			} else {
 				// Insert new row / 新增记录
-				if err := tx.Create(models.GetDefaultChannelRow(dev, normalized2[i])).Error; err != nil {
+				if err := tx.Create(models.GetDefaultChannelRow(dev)).Error; err != nil {
 					return fmt.Errorf("create serial failed: %w", err)
 				}
 			}

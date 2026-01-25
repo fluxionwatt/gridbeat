@@ -7,7 +7,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/fluxionwatt/gridbeat/utils/modbus"
+	"github.com/fluxionwatt/gridbeat/internal/models"
+	modbusutils "github.com/fluxionwatt/gridbeat/utils/modbus"
 )
 
 // Coil handler method.
@@ -17,18 +18,18 @@ import (
 // read-only.
 // (read them with ./modbus-cli --target tcp://localhost:5502 rc:0+99, write to register n
 // with ./modbus-cli --target tcp://localhost:5502 wr:n:<true|false>)
-func (eh *ModbusInstance) HandleCoils(req *modbus.CoilsRequest) (res []bool, err error) {
-	if req.UnitId != 1 {
-		// only accept unit ID #1
-		// note: we're merely filtering here, but we could as well use the unit
-		// ID field to support multiple register maps in a single server.
-		//err = modbus.ErrIllegalFunction
-		return
-	}
+func (eh *ModbusInstance) HandleCoils(req *modbusutils.CoilsRequest) (res []bool, err error) {
+	//if req.UnitId != 1 {
+	// only accept unit ID #1
+	// note: we're merely filtering here, but we could as well use the unit
+	// ID field to support multiple register maps in a single server.
+	//err = modbusutils.ErrIllegalFunction
+	//return
+	//}
 
 	// make sure that all registers covered by this request actually exist
 	if int(req.Addr)+int(req.Quantity) > len(eh.coils) {
-		err = modbus.ErrIllegalDataAddress
+		err = modbusutils.ErrIllegalDataAddress
 		return
 	}
 
@@ -58,11 +59,11 @@ func (eh *ModbusInstance) HandleCoils(req *modbus.CoilsRequest) (res []bool, err
 // Note that we're returning ErrIllegalFunction unconditionally.
 // This will cause the client to receive "illegal function", which is the modbus way of
 // reporting that this server does not support/implement the discrete input type.
-func (eh *ModbusInstance) HandleDiscreteInputs(req *modbus.DiscreteInputsRequest) (res []bool, err error) {
+func (eh *ModbusInstance) HandleDiscreteInputs(req *modbusutils.DiscreteInputsRequest) (res []bool, err error) {
 	// this is the equivalent of saying
 	// "discrete inputs are not supported by this device"
 	// (try it with modbus-cli --target tcp://localhost:5502 rdi:1)
-	err = modbus.ErrIllegalFunction
+	err = modbusutils.ErrIllegalFunction
 
 	return
 }
@@ -70,12 +71,12 @@ func (eh *ModbusInstance) HandleDiscreteInputs(req *modbus.DiscreteInputsRequest
 // Holding register handler method.
 // This method gets called whenever a valid modbus request asking for a holding register
 // operation (either read or write) received by the server.
-func (eh *ModbusInstance) HandleHoldingRegisters(req *modbus.HoldingRegistersRequest) (res []uint16, err error) {
+func (eh *ModbusInstance) HandleHoldingRegisters(req *modbusutils.HoldingRegistersRequest) (res []uint16, err error) {
 	var regAddr uint16
 
 	if req.UnitId != 1 {
 		// only accept unit ID #1
-		//err = modbus.ErrIllegalFunction
+		//err = modbusutils.ErrIllegalFunction
 		//return
 	}
 
@@ -109,15 +110,15 @@ func (eh *ModbusInstance) HandleHoldingRegisters(req *modbus.HoldingRegistersReq
 // This method gets called whenever a valid modbus request asking for an input register
 // operation is received by the server.
 // Note that input registers are always read-only as per the modbus spec.
-func (eh *ModbusInstance) HandleInputRegisters(req *modbus.InputRegistersRequest) (res []uint16, err error) {
+func (eh *ModbusInstance) HandleInputRegisters(req *modbusutils.InputRegistersRequest) (res []uint16, err error) {
 	var unixTs_s uint32
 	var minusOne int16 = -1
 
-	if req.UnitId != 1 {
-		// only accept unit ID #1
-		//	err = modbus.ErrIllegalFunction
-		//	return
-	}
+	//if req.UnitId != 1 {
+	// only accept unit ID #1
+	//	err = modbus.ErrIllegalFunction
+	//	return
+	//}
 
 	// get the current unix timestamp, converted as a 32-bit unsigned integer for
 	// simplicity
@@ -181,7 +182,7 @@ func (eh *ModbusInstance) HandleInputRegisters(req *modbus.InputRegistersRequest
 		// those defined above will result in an illegal data address
 		// exception client-side.
 		default:
-			err = modbus.ErrIllegalDataAddress
+			err = modbusutils.ErrIllegalDataAddress
 			return
 		}
 	}
@@ -193,4 +194,121 @@ func RandUint16() uint16 {
 	var buf [2]byte
 	_, _ = rand.Read(buf[:])
 	return binary.BigEndian.Uint16(buf[:])
+}
+
+// runPollerRTU：内部轮询逻辑，在单独协程中运行/internal polling loop, runs in a dedicated goroutine.
+func (m *ModbusInstance) runSimulatorPollerRTU(cfg *models.InstanceConfig) {
+
+	m.logger.Infof("modbus simulator(RTU) poller started, interval=%s", cfg.Channel.RetryInterval)
+
+	for {
+		// 如果上层 ctx 已取消，直接退出
+		// If parent context is done, exit.
+		select {
+		case <-m.ctx.Done():
+			m.logger.Infof("modbus simulator(RTU) poller exit: ctx=%v", m.ctx.Err())
+			return
+		default:
+		}
+
+		m.Status.Working = true
+		m.Status.Linking = false
+
+		// 尝试建立连接 / try to open connection.
+		if err := m.serverRTU.Start(); err != nil {
+			m.logger.Errorf("modbus simulator(RTU) open %s failed: %v", m.URL, err)
+			if !sleepWithContext(m.ctx, 2*time.Second) {
+				m.logger.Infof("modbus simulator(RTU) poller exit during reconnect wait")
+				return
+			}
+			continue
+		}
+
+		m.logger.Infof("modbus simulator(RTU) connected to %s", m.URL)
+
+		m.Status.Linking = true
+
+		ticker := time.NewTicker(cfg.Channel.RetryInterval)
+		connected := true
+
+		for connected {
+			select {
+			case <-m.ctx.Done():
+				// 上层取消：关闭连接并退出
+				// Parent canceled: close connection and exit.
+				ticker.Stop()
+				_ = m.serverRTU.Stop()
+				m.logger.Infof("modbus simulator(RTU) poller exit on ctx done")
+				return
+			case <-ticker.C:
+				time.Sleep(time.Second)
+				// 轮询读寄存器 / poll holding/input registers.
+
+				//m.cfg.Model.BytesReceived = m.cfg.Model.BytesReceived + 1
+				//m.cfg.Model.BytesSent = m.cfg.Model.BytesSent + 1
+
+				// 打印调试信息 / log debug values.
+				m.logger.Debugf("modbus simulator(RTU) recv ok")
+			}
+		}
+	}
+}
+
+// runPoller：内部轮询逻辑，在单独协程中运行
+// runPoller: internal polling loop, runs in a dedicated goroutine.
+func (m *ModbusInstance) runSimulatorPollerTCP(cfg *models.InstanceConfig) {
+
+	m.logger.Infof("modbus simulator(TCP) poller started, interval=%s", cfg.Channel.RetryInterval)
+
+	for {
+		// 如果上层 ctx 已取消，直接退出
+		// If parent context is done, exit.
+		select {
+		case <-m.ctx.Done():
+			m.logger.Infof("modbus simulator(TCP) poller exit: ctx=%v", m.ctx.Err())
+			return
+		default:
+		}
+
+		m.Status.Working = true
+		m.Status.Linking = false
+
+		// 尝试建立连接 / try to open connection.
+		if err := m.serverTCP.Start(); err != nil {
+			m.logger.Errorf("modbus simulator(TCP) open %s failed: %v", m.URL, err)
+			if !sleepWithContext(m.ctx, 2*time.Second) {
+				m.logger.Infof("modbus simulator(TCP) poller exit during reconnect wait")
+				return
+			}
+			continue
+		}
+
+		m.logger.Infof("modbus simulator(TCP) connected to %s", m.URL)
+
+		m.Status.Linking = true
+
+		ticker := time.NewTicker(cfg.Channel.RetryInterval)
+		connected := true
+
+		for connected {
+			select {
+			case <-m.ctx.Done():
+				// 上层取消：关闭连接并退出
+				// Parent canceled: close connection and exit.
+				ticker.Stop()
+				_ = m.serverTCP.Stop()
+				m.logger.Infof("modbus simulator(TCP) poller exit on ctx done")
+				return
+			case <-ticker.C:
+				time.Sleep(time.Second)
+				// 轮询读寄存器 / poll holding/input registers.
+
+				//m.cfg.Model.BytesReceived = m.cfg.Model.BytesReceived + 1
+				//m.cfg.Model.BytesSent = m.cfg.Model.BytesSent + 1
+
+				// 打印调试信息 / log debug values.
+				m.logger.Debugf("modbus simulator(TCP) recv ok")
+			}
+		}
+	}
 }
