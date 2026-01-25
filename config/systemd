@@ -9,7 +9,7 @@ Group=root
 PIDFile=/run/gridbeat.pid
 Environment="conffile=/etc/gridbeat/gridbeat.yaml"
 EnvironmentFile=-/etc/sysconfig/gridbeat
-ExecStart=/usr/sbin/gridbeat server -c ${conffile}
+ExecStart=/usr/bin/gridbeat server -c ${conffile}
 ExecStop=/bin/sh -c "/bin/kill -s TERM $(/bin/cat /run/gridbeat.pid)"
 Restart=always
 RestartSec=30s

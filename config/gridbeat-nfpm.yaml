@@ -9,11 +9,11 @@ mqtt:
     port: 1883
     host: localhost
 http:
-    port: 8080
+    port: 80
     redirect_https: false
 https:
     disable: false
-    port: 8443
+    port: 443
 auth:
   jwt:
     # IMPORTANT: change this in production

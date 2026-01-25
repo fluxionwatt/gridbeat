@@ -3,10 +3,11 @@ version: 2
 project_name: gridbeat
 
 builds:
-  - env:
-      - CGO_ENABLED=0
+  - id: main
+    env:
+     - CGO_ENABLED=0
     ldflags:
-      - -s -w -X github.com/fluxionwatt/gridbeat/version.Version={{ .Version }} -X github.com/fluxionwatt/gridbeat/version.CommitSHA={{ .ShortCommit }}
+     - -s -w -X github.com/fluxionwatt/gridbeat/version.Version={{ .Version }} -X github.com/fluxionwatt/gridbeat/version.CommitSHA={{ .ShortCommit }}
     main: main.go
     binary: gridbeat
     goos: [linux, darwin]
@@ -41,22 +42,26 @@ nfpms:
       - deb
     dependencies:
       - logrotate
-    bindir: /usr/sbin
+    bindir: /usr/bin
     scripts:
-      postinstall: packaging/postinstall.sh
-      preremove: packaging/preremove.sh
+      postinstall: config/postinstall.sh
+      preremove: config/preremove.sh
     contents:
       - dst: /usr/lib/gridbeat/plugins
         type: dir
         file_info:
           mode: 0755
-      - src: "./packaging/cron.daily"
+#      - src: dist/{{ .ProjectName }}-{{ .Version }}-{{- if eq .Arch "amd64" -}}x86_64{{- else if eq .Arch "arm64" -}}aarch64{{- else -}}{{ .Arch }}{{- end -}}/demo.so
+#        dst: /usr/lib/gridbeat/plugins/demo.so
+#        file_info:
+#          mode: 0755
+      - src: "./config/cron.daily"
         dst: "/etc/cron.daily/gridbeat"
-      - src: "./packaging/systemd"
+      - src: "./config/systemd"
         dst: "/usr/lib/systemd/system/gridbeat.service"
-      - src: "./packaging/logrotate"
+      - src: "./config/logrotate"
         dst: "/etc/logrotate.d/gridbeat"
-      - src: "./packaging/default"
+      - src: "./config/default"
         dst: "/etc/sysconfig/gridbeat"
       - src: "./config/gridbeat-nfpm.yaml"
         dst: "/etc/gridbeat/gridbeat.yaml"
