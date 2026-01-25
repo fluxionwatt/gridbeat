@@ -13,7 +13,7 @@ import (
 // Migrate 执行数据库自动迁移。
 func Migrate(db *gorm.DB) error {
 
-	if err := db.AutoMigrate(&Serial{}, &Channel{}, &MQTT{}, &Goose{}); err != nil {
+	if err := db.AutoMigrate(&Channel{}); err != nil {
 		return err
 	}
 

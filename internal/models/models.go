@@ -7,6 +7,11 @@ import (
 	"gorm.io/gorm"
 )
 
+// InstanceConfig  实例的配置 configuration for a single modbus instance.
+type InstanceConfig struct {
+	Channel Channel
+}
+
 // Model a basic GoLang struct which includes the following fields: ID, CreatedAt, UpdatedAt, DeletedAt
 // It may be embedded into your model or you may build your own model without it
 //

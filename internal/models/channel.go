@@ -35,6 +35,11 @@ type Channel struct {
 	PhysicalLink    string         `gorm:"column:physical_link" json:"physical_link"`   // serial、RTUclient、RTUserver、TCPclient、TCPserver
 	Disable         bool           `gorm:"column:disable" json:"disable"`               // disable
 	Plugin          string         `gorm:"column:plugin;size:128;not null" json:"plugin"`
+	Device          string         `gorm:"uniqueIndex;size:256;not null" json:"device"` // Device is like "/dev/ttyUSB0" / 设备路径，例如 "/dev/ttyUSB0"
+	StopBits        uint           `gorm:"column:stop_bits" json:"stop_bits"`           // 停止位
+	Speed           uint           `gorm:"column:speed" json:"speed"`                   // speed
+	DataBits        uint           `gorm:"column:data_bits" json:"data_bits"`           // data bits
+	Parity          uint           `gorm:"column:parity" json:"parity"`                 // parity
 	AddrStart       bool           `gorm:"column:addr_start" json:"addr_start"`
 	TCPIPAddr       string         `gorm:"column:tcp_ip_addr" json:"tcp_ip_addr"`
 	TCPPort         uint16         `gorm:"column:tcp_port" json:"tcp_port"`
@@ -64,6 +69,10 @@ func GetDefaultChannelRow(device, device2 string) *Channel {
 		Endianness:      uint(modbus.LITTLE_ENDIAN),
 		WordOrder:       uint(modbus.LOW_WORD_FIRST),
 		SendInterval:    300 * time.Millisecond,
+		Speed:           19200,
+		StopBits:        2,
+		DataBits:        8,
+		Parity:          modbus.PARITY_NONE,
 		TCPIPAddr:       "localhost",
 		TCPPort:         5502,
 		BackupTCPIPAddr: "localhost",

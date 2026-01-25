@@ -1,4 +1,4 @@
-package cmbus
+package modbus
 
 import (
 	"os"
@@ -11,8 +11,8 @@ func (m *ModbusInstance) createSocat() {
 
 	m.socat = exec.Command("/opt/homebrew/bin/socat",
 		"-d", "-d",
-		"pty,raw,echo=0,link="+m.cfg.Serial.Device,
-		"pty,raw,echo=0,link="+m.cfg.Serial.Device2,
+		"pty,raw,echo=0,link="+m.cfg.Channel.Device,
+		"pty,raw,echo=0,link="+m.cfg.Channel.Device+".se",
 	)
 
 	if entry, ok := m.logger.(*logrus.Entry); ok {
@@ -20,8 +20,8 @@ func (m *ModbusInstance) createSocat() {
 		m.socat.Stderr = entry.WriterLevel(logrus.InfoLevel)
 	}
 
-	os.Remove(m.cfg.Serial.Device)
-	os.Remove(m.cfg.Serial.Device2)
+	os.Remove(m.cfg.Channel.Device)
+	os.Remove(m.cfg.Channel.Device + ".se")
 }
 
 /*

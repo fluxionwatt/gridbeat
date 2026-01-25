@@ -1,4 +1,4 @@
-package cmbus
+package modbus
 
 import (
 	"crypto/rand"

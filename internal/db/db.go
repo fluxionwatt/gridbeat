@@ -124,11 +124,11 @@ func SyncSerials(gdb *gorm.DB, devices []config.Serial) error {
 
 	return gdb.Transaction(func(tx *gorm.DB) error {
 		// Load existing records / 读取现有记录
-		var existing []models.Serial
+		var existing []models.Channel
 		if err := tx.Find(&existing).Error; err != nil {
 			return fmt.Errorf("query serials failed: %w", err)
 		}
-		existingSet := make(map[string]models.Serial, len(existing))
+		existingSet := make(map[string]models.Channel, len(existing))
 		for _, s := range existing {
 			existingSet[s.Device] = s
 		}
@@ -137,14 +137,14 @@ func SyncSerials(gdb *gorm.DB, devices []config.Serial) error {
 		for i, dev := range normalized {
 			if s, ok := existingSet[dev]; ok {
 				// Update updated_at to reflect current boot config / 更新时间反映当前启动配置
-				if err := tx.Model(&models.Serial{}).
+				if err := tx.Model(&models.Channel{}).
 					Where("id = ?", s.ID).
 					Updates(map[string]any{"updated_at": now}).Error; err != nil {
 					return fmt.Errorf("update serial failed: %w", err)
 				}
 			} else {
 				// Insert new row / 新增记录
-				if err := tx.Create(models.GetDefaultSerialRow(dev, normalized2[i])).Error; err != nil {
+				if err := tx.Create(models.GetDefaultChannelRow(dev, normalized2[i])).Error; err != nil {
 					return fmt.Errorf("create serial failed: %w", err)
 				}
 			}
@@ -153,13 +153,13 @@ func SyncSerials(gdb *gorm.DB, devices []config.Serial) error {
 		// Delete records not in list / 删除不在列表中的记录
 		// If startup list is empty, it means delete all records / 如果启动参数为空，则删除全部记录
 		if len(normalized) == 0 {
-			if err := tx.Where("1 = 1").Delete(&models.Serial{}).Error; err != nil {
+			if err := tx.Where("1 = 1").Delete(&models.Channel{}).Error; err != nil {
 				return fmt.Errorf("delete all serials failed: %w", err)
 			}
 			return nil
 		}
 
-		if err := tx.Where("device NOT IN ?", normalized).Delete(&models.Serial{}).Error; err != nil {
+		if err := tx.Where("device NOT IN ?", normalized).Delete(&models.Channel{}).Error; err != nil {
 			return fmt.Errorf("delete missing serials failed: %w", err)
 		}
 		return nil

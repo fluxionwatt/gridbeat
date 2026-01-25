@@ -18,7 +18,6 @@ const (
 )
 
 type Device struct {
-	ChannelID string
 	Base
 	Name            string `gorm:"column:name;size:150;uniqueIndex;not null" json:"name"`
 	DeviceType      string `gorm:"column:device_type;size:128;not null;index" json:"device_type"` // Requirement #4: weak association by type_key (no FK)

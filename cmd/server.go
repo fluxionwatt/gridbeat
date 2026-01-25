@@ -20,10 +20,9 @@ import (
 	"github.com/spf13/viper"
 
 	http "github.com/fluxionwatt/gridbeat/core/http"
-	"github.com/fluxionwatt/gridbeat/core/plugin/cmbus"
-	"github.com/fluxionwatt/gridbeat/core/plugin/goose"
-	"github.com/fluxionwatt/gridbeat/core/plugin/mbus"
-	"github.com/fluxionwatt/gridbeat/core/plugin/mqtt"
+	_ "github.com/fluxionwatt/gridbeat/core/plugin/goose"
+	_ "github.com/fluxionwatt/gridbeat/core/plugin/modbus"
+	_ "github.com/fluxionwatt/gridbeat/core/plugin/mqtt"
 )
 
 func init() {
@@ -216,84 +215,14 @@ var serverCmd = &cobra.Command{
 
 		handler.Init(rootCtx, cycle)
 
-		var sitems []models.Serial
-		if err := gdb.Order("id asc").Find(&sitems).Error; err != nil {
-			cobra.CheckErr(fmt.Errorf("get all serial %w", err))
-			return
-		}
-		for _, cl := range sitems {
-			if core.Gconfig.Simulator {
-				if _, err = mgr.Create("cmbus", cl.ID, cmbus.InstanceConfig{
-					IsSerial: true,
-					Serial:   cl,
-				}); err != nil {
-					cobra.CheckErr(fmt.Errorf("mgr create instance %w", err))
-				}
-			}
-			if _, err = mgr.Create("mbus", cl.ID, mbus.InstanceConfig{
-				IsSerial:  true,
-				Timeout:   cl.OnnectTimeout,
-				Serial:    cl,
-				UnitID:    1,
-				Quantity:  1,
-				StartAddr: 100,
-			}); err != nil {
-				cobra.CheckErr(fmt.Errorf("mgr create instance %w", err))
-			}
-		}
-
 		var citems []models.Channel
 		if err := gdb.Order("id asc").Find(&citems).Error; err != nil {
 			cobra.CheckErr(fmt.Errorf("get all channel %w", err))
 			return
 		}
 		for _, cl := range citems {
-
-			if core.Gconfig.Simulator {
-				if _, err = mgr.Create("cmbus", cl.ID, cmbus.InstanceConfig{
-					Channel:  cl,
-					IsSerial: false,
-				}); err != nil {
-					cobra.CheckErr(fmt.Errorf("mgr create instance %w", err))
-				}
-			}
-			if _, err = mgr.Create("mbus", cl.ID, mbus.InstanceConfig{
-				Channel:   cl,
-				IsSerial:  false,
-				Timeout:   cl.OnnectTimeout,
-				UnitID:    1,
-				Quantity:  1,
-				StartAddr: 100,
-			}); err != nil {
-				cobra.CheckErr(fmt.Errorf("mgr create instance %w", err))
-			}
-		}
-
-		var mitems []models.MQTT
-		if err := gdb.Order("id asc").Find(&mitems).Error; err != nil {
-			cobra.CheckErr(fmt.Errorf("get all mqtt %w", err))
-			return
-		}
-		for _, cl := range mitems {
-
-			if _, err = mgr.Create("mqtt", cl.ID, mqtt.InstanceConfig{
-				Model:   cl,
-				Timeout: cl.OnnectTimeout,
-			}); err != nil {
-				cobra.CheckErr(fmt.Errorf("mgr create instance %w", err))
-			}
-		}
-
-		var gitems []models.Goose
-		if err := gdb.Order("id asc").Find(&gitems).Error; err != nil {
-			cobra.CheckErr(fmt.Errorf("get all goose %w", err))
-			return
-		}
-		for _, cl := range gitems {
-
-			if _, err = mgr.Create("goose", cl.ID, goose.InstanceConfig{
-				Model:   cl,
-				Timeout: cl.OnnectTimeout,
+			if _, err = mgr.Create(cl.Plugin, cl.ID, models.InstanceConfig{
+				Channel: cl,
 			}); err != nil {
 				cobra.CheckErr(fmt.Errorf("mgr create instance %w", err))
 			}
